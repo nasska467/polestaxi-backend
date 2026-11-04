@@ -1,0 +1,33 @@
+<mxfile host="app.diagrams.net" agent="PolesTaxi" pages="2">
+  <diagram id="auth" name="Auth flows">
+    <mxGraphModel dx="1664" dy="914" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;" value="Registration&#xa;1 Gateway → User.Register&#xa;2 hash password, roles User|Driver&#xa;3 gRPC Driver.Register если Driver (fail = нет половины)&#xa;4 gRPC Wallet.CreateWallet&#xa;5 Kafka user.registered" vertex="1">
+          <mxGeometry height="140" width="390" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;" value="Login&#xa;1 Client → Auth.Login&#xa;2 Auth gRPC User.VerifyCredentials&#xa;3 access JWT 15-30m (userId, roles) + refresh 7-30d&#xa;4 оба токена в Redis&#xa;5 клиенту пара токенов" vertex="1">
+          <mxGeometry height="140" width="390" x="40" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=15;" value="Request authentication&#xa;1 Authorization: Bearer access&#xa;2 Gateway → Auth.ValidateToken (подпись, exp, Redis)&#xa;3 Gateway RBAC → прокси в сервис&#xa;4 сервис без повторной проверки JWT" vertex="1">
+          <mxGeometry height="130" width="390" x="40" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=15;" value="Refresh&#xa;1 POST /v1/auth/refresh&#xa;2 проверка refresh (подпись, exp, Redis)&#xa;3 новая пара access+refresh, старые jti удаляются" vertex="1">
+          <mxGeometry height="110" width="390" x="40" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f8cecc;strokeColor=#b85450;fontSize=15;" value="Logout&#xa;1 POST /v1/auth/logout (access + refresh)&#xa;2 удаление ключей Redis&#xa;3 оба токена сразу недействительны" vertex="1">
+          <mxGeometry height="110" width="390" x="40" y="390" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="TVduedxvAh7KPjMY3pWB" name="Страница-2">
+    <mxGraphModel dx="1414" dy="777" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
