@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/shared/">
+    <Project Path="shared/PolesTaxi.Shared/PolesTaxi.Shared.csproj" />
+  </Folder>
+</Solution>
