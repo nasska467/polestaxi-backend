@@ -18,6 +18,9 @@
   <Folder Name="/services/user-service/">
     <Project Path="services/user-service/PolesTaxi.UserService.csproj" />
   </Folder>
+  <Folder Name="/services/user-service/tests/">
+    <Project Path="services/user-service/tests/PolesTaxi.UserService.Tests.csproj" />
+  </Folder>
   <Folder Name="/services/wallet-service/">
     <Project Path="services/wallet-service/PolesTaxi.WalletService.csproj" />
   </Folder>
