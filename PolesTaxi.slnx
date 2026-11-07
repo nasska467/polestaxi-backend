@@ -1,0 +1,45 @@
+<Solution>
+  <Folder Name="/services/" />
+  <Folder Name="/services/analytic-service/">
+    <Project Path="services/analytic-service/PolesTaxi.AnalyticService.csproj" />
+  </Folder>
+  <Folder Name="/services/analytic-service/tests/">
+    <Project Path="services/analytic-service/tests/PolesTaxi.AnalyticService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/auth-service/">
+    <Project Path="services/auth-service/PolesTaxi.AuthService.csproj" />
+  </Folder>
+  <Folder Name="/services/auth-service/tests/">
+    <Project Path="services/auth-service/tests/PolesTaxi.AuthService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/driver-service/">
+    <Project Path="services/driver-service/PolesTaxi.DriverService.csproj" />
+  </Folder>
+  <Folder Name="/services/driver-service/tests/">
+    <Project Path="services/driver-service/tests/PolesTaxi.DriverService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/gateway-service/">
+    <Project Path="services/gateway-service/PolesTaxi.GatewayService.csproj" />
+  </Folder>
+  <Folder Name="/services/order-service/">
+    <Project Path="services/order-service/PolesTaxi.OrderService.csproj" />
+  </Folder>
+  <Folder Name="/services/order-service/tests/">
+    <Project Path="services/order-service/tests/PolesTaxi.OrderService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/user-service/">
+    <Project Path="services/user-service/PolesTaxi.UserService.csproj" />
+  </Folder>
+  <Folder Name="/services/user-service/tests/">
+    <Project Path="services/user-service/tests/PolesTaxi.UserService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/wallet-service/">
+    <Project Path="services/wallet-service/PolesTaxi.WalletService.csproj" />
+  </Folder>
+  <Folder Name="/services/wallet-service/tests/">
+    <Project Path="services/wallet-service/tests/PolesTaxi.WalletService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/PolesTaxi.Shared/PolesTaxi.Shared.csproj" />
+  </Folder>
+</Solution>
