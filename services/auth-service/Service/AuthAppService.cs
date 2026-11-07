@@ -139,7 +139,10 @@ public sealed class AuthAppService : IAuthAppService
 
             var jti = principal.FindFirst(JwtRegisteredClaimNames.Jti)?.Value
                 ?? throw AppException.Unauthorized("jti is missing");
+            
+            // Ищем sub в стандартном claim и в NameIdentifier (куда его мапит JWT-библиотека)
             var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? throw AppException.Unauthorized("sub is missing");
 
             var roles = principal.FindAll(ClaimTypes.Role).Select(c => EnumMaps.RoleFromWire(c.Value)).ToList();
