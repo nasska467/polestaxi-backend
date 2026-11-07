@@ -1,6 +1,7 @@
 using Grpc.Core;
 using PolesTaxi.Contracts.User.V1;
 using PolesTaxi.Shared.Hosting;
+using PolesTaxi.Shared.Errors;
 using PolesTaxi.UserService.Entity.Service;
 using PolesTaxi.UserService.Service;
 
@@ -28,7 +29,6 @@ public sealed class UserGrpcHandler : PolesTaxi.Contracts.User.V1.UserService.Us
         }
         catch (Exception ex)
         {
-            // Возвращаем текст ошибки, чтобы увидеть причину
             throw new RpcException(new Status(StatusCode.Internal, ex.Message + " | " + ex.StackTrace));
         }
     }
@@ -38,6 +38,26 @@ public sealed class UserGrpcHandler : PolesTaxi.Contracts.User.V1.UserService.Us
         var userId = CallContext.RequireUserId(context);
         var user = await _service.GetMe(userId, context.CancellationToken);
         return ToResponse(user);
+    }
+
+    // <-- ДОБАВИЛИ ЭТОТ МЕТОД
+    public override async Task<VerifyCredentialsResponse> VerifyCredentials(VerifyCredentialsRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var user = await _service.GetByEmailOrPhone(request.Login, context.CancellationToken);
+            
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "invalid credentials"));
+
+            var response = new VerifyCredentialsResponse { UserId = user.Id };
+            response.Roles.AddRange(user.Roles.Select(r => (PolesTaxi.Contracts.User.V1.Role)(int)r));
+            return response;
+        }
+        catch (AppException ex) when (ex.Code == ErrorCodes.NotFound)
+        {
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "invalid credentials"));
+        }
     }
 
     private static UserResponse ToResponse(User user)

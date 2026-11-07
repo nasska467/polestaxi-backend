@@ -9,6 +9,7 @@ public interface IUserAppService
 {
     Task<User> Register(string name, string phone, string email, string password, Role role, CancellationToken cancellationToken);
     Task<User> GetMe(string userId, CancellationToken cancellationToken);
+    Task<User> GetByEmailOrPhone(string login, CancellationToken cancellationToken); // <-- добавили
 }
 
 public sealed class UserAppService : IUserAppService
@@ -50,5 +51,18 @@ public sealed class UserAppService : IUserAppService
     public async Task<User> GetMe(string userId, CancellationToken cancellationToken)
     {
         return await _users.GetById(userId, cancellationToken);
+    }
+
+    // <-- ДОБАВИЛИ ЭТОТ МЕТОД
+    public async Task<User> GetByEmailOrPhone(string login, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _users.GetByEmail(login, cancellationToken);
+        }
+        catch (AppException ex) when (ex.Code == ErrorCodes.NotFound)
+        {
+            return await _users.GetByPhone(login, cancellationToken);
+        }
     }
 }

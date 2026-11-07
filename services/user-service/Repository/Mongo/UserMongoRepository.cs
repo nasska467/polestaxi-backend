@@ -39,6 +39,13 @@ public sealed class UserMongoRepository : IUserRepository
         return RequireActive(doc);
     }
 
+    // <-- ДОБАВИЛИ ЭТОТ МЕТОД
+    public async Task<User> GetByPhone(string phone, CancellationToken cancellationToken)
+    {
+        var doc = await _users.Find(x => x.Phone == phone).FirstOrDefaultAsync(cancellationToken);
+        return RequireActive(doc);
+    }
+
     public async Task SoftDelete(string id, CancellationToken cancellationToken)
     {
         var result = await _users.UpdateOneAsync(
