@@ -30,6 +30,9 @@
   <Folder Name="/services/wallet-service/">
     <Project Path="services/wallet-service/PolesTaxi.WalletService.csproj" />
   </Folder>
+  <Folder Name="/services/wallet-service/tests/">
+    <Project Path="services/wallet-service/tests/PolesTaxi.WalletService.Tests.csproj" />
+  </Folder>
   <Folder Name="/shared/">
     <Project Path="shared/PolesTaxi.Shared/PolesTaxi.Shared.csproj" />
   </Folder>
