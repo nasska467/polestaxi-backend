@@ -3,6 +3,9 @@
   <Folder Name="/services/analytic-service/">
     <Project Path="services/analytic-service/PolesTaxi.AnalyticService.csproj" />
   </Folder>
+  <Folder Name="/services/analytic-service/tests/">
+    <Project Path="services/analytic-service/tests/PolesTaxi.AnalyticService.Tests.csproj" />
+  </Folder>
   <Folder Name="/services/auth-service/">
     <Project Path="services/auth-service/PolesTaxi.AuthService.csproj" />
   </Folder>

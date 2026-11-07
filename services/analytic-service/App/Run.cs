@@ -1,5 +1,6 @@
 ﻿using PolesTaxi.AnalyticService.App.Db.ClickHouse;
 using PolesTaxi.AnalyticService.Config;
+using PolesTaxi.AnalyticService.Repository.ClickHouse;
 
 namespace PolesTaxi.AnalyticService.App;
 
@@ -15,6 +16,7 @@ public static class Run
         try
         {
             var store = await ClickHouseStore.New(config.ClickHouseConnection, cts.Token);
+            var repo = new AnalyticClickHouseRepository(config.ClickHouseConnection);
             Console.WriteLine("clickhouse ready");
 
             try { await Task.Delay(Timeout.Infinite, cts.Token); }
