@@ -18,9 +18,11 @@ public sealed class ElasticStore
 
     public static async Task<ElasticStore> New(string uri, string indexName, CancellationToken cancellationToken)
     {
-        var settings = new ElasticsearchClientSettings(new Uri(uri))
+        // Убедимся, что URI использует http, а не https
+        var httpUri = uri.Replace("https://", "http://");
+
+        var settings = new ElasticsearchClientSettings(new Uri(httpUri))
             .DefaultIndex(indexName)
-            .ServerCertificateValidationCallback(CertificateValidations.AllowAll)
             .ThrowExceptions(false);
 
         var client = new ElasticsearchClient(settings);

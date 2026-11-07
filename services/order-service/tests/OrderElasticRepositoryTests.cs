@@ -13,9 +13,13 @@ namespace PolesTaxi.OrderService.Tests;
 
 public sealed class OrderStoreFixture : IAsyncLifetime
 {
+    // Отключаем безопасность для тестов, чтобы не требовался пароль
     public ElasticsearchContainer Elastic { get; } = new ElasticsearchBuilder()
         .WithImage("docker.elastic.co/elasticsearch/elasticsearch:8.19.6")
+        .WithEnvironment("xpack.security.enabled", "false")
+        .WithEnvironment("xpack.security.http.ssl.enabled", "false")
         .Build();
+        
     public RedisContainer Redis { get; } = new RedisBuilder().WithImage("redis:7.0").Build();
 
     public Task InitializeAsync() => Task.WhenAll(Elastic.StartAsync(), Redis.StartAsync());
