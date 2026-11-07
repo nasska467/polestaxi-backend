@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package polestaxi.events.v1;
+
+option csharp_namespace = "PolesTaxi.Contracts.Events.V1";
+
+import "google/protobuf/timestamp.proto";
+
+message UserRegisteredEvent {
+  string user_id = 1;
+  string role = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+}
+
+message DriverRegisteredEvent {
+  string driver_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+}
+
+message OrderStatusChangedEvent {
+  string order_id = 1;
+  string user_id = 2;
+  string driver_id = 3;
+  string old_status = 4;
+  string new_status = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  double price = 7;
+  int64 distance_meters = 8;
+  string taxi_type = 9;
+}
+
+message PaymentCompletedEvent {
+  string payment_id = 1;
+  string order_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
+
+message TripRatedEvent {
+  string order_id = 1;
+  string from_user_id = 2;
+  string to_user_id = 3;
+  int32 score = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
