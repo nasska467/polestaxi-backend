@@ -14,7 +14,7 @@ using PolesTaxi.UserService.Repository;
 using PolesTaxi.UserService.Repository.Mongo;
 using PolesTaxi.UserService.Service;
 using Xunit;
-using MongoClient = PolesTaxi.UserService.App.Db.Mongo.MongoClient; // <-- добавили
+using MongoClient = PolesTaxi.UserService.App.Db.Mongo.MongoClient;
 
 namespace PolesTaxi.UserService.Tests;
 
@@ -39,11 +39,15 @@ public sealed class UserHttpTests
 
         var client = app.GetTestClient();
 
+        // Генерируем уникальные email и телефон, чтобы избежать конфликта
+        var uniqueEmail = $"ann_{Guid.NewGuid():N}@t.local";
+        var uniquePhone = $"+7999{Random.Shared.Next(1000000, 9999999)}";
+
         var registerBody = new
         {
             name = "Ann",
-            phone = "+79990001122",
-            email = "ann@t.local",
+            phone = uniquePhone,
+            email = uniqueEmail,
             password = "password1",
             role = "ROLE_USER"
         };
@@ -59,7 +63,7 @@ public sealed class UserHttpTests
         meResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var meJson = await meResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-        meJson!["email"].ToString().Should().Be("ann@t.local");
+        meJson!["email"].ToString().Should().Be(uniqueEmail);
 
         await app.StopAsync();
     }
