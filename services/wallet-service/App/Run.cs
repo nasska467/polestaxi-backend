@@ -1,11 +1,32 @@
-﻿namespace PolesTaxi.WalletService.App;
+﻿using PolesTaxi.WalletService.App.Db.Pg;
+using PolesTaxi.WalletService.Config;
+
+namespace PolesTaxi.WalletService.App;
 
 public static class Run
 {
-    public static Task<int> ExecuteAsync(string[] args)
+    public static async Task<int> ExecuteAsync(string[] args)
     {
         _ = args;
-        Console.WriteLine("PolesTaxi.WalletService skeleton (phase 1: no HTTP/gRPC yet)");
-        return Task.FromResult(0);
+        var config = AppConfig.FromEnvironment();
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+
+        try
+        {
+            using var pg = PgClient.New(config.PostgresConnection);
+            Console.WriteLine("postgres ready");
+
+            try { await Task.Delay(Timeout.Infinite, cts.Token); }
+            catch (OperationCanceledException) { }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"wallet store init failed: {ex.Message}");
+            return 1;
+        }
+
+        Console.WriteLine("shutdown");
+        return 0;
     }
 }
