@@ -26,8 +26,10 @@ public sealed class UserHttpTests
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddPolesTaxiGrpc();
-        
-        builder.Services.AddSingleton(_ => MongoClient.New("mongodb://127.0.0.1:27018", "polestaxi_users_test", CancellationToken.None).GetAwaiter().GetResult());
+
+        // Уникальная база для каждого запуска теста
+        var dbName = $"polestaxi_users_test_{Guid.NewGuid():N}";
+        builder.Services.AddSingleton(_ => MongoClient.New("mongodb://127.0.0.1:27018", dbName, CancellationToken.None).GetAwaiter().GetResult());
         builder.Services.AddSingleton<IMongoCollection<UserDocument>>(sp => sp.GetRequiredService<MongoClient>().Users);
         builder.Services.AddScoped<IUserRepository, UserMongoRepository>();
         builder.Services.AddScoped<IUserAppService, UserAppService>();
@@ -39,7 +41,7 @@ public sealed class UserHttpTests
 
         var client = app.GetTestClient();
 
-        // Генерируем уникальные email и телефон, чтобы избежать конфликта
+        // Уникальные email и телефон, чтобы избежать конфликта
         var uniqueEmail = $"ann_{Guid.NewGuid():N}@t.local";
         var uniquePhone = $"+7999{Random.Shared.Next(1000000, 9999999)}";
 
