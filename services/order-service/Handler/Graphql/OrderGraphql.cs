@@ -59,4 +59,18 @@ public sealed class OrderMutations
 
         return await service.Cancel(id, userId, cancellationToken);
     }
+
+    public async Task<Order> RateOrder(
+        string id,
+        int score,
+        [Service] IOrderAppService service,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        CancellationToken cancellationToken)
+    {
+        var userId = httpContextAccessor.HttpContext?.Request.Headers["x-user-id"].ToString();
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new GraphQLException("x-user-id header is missing");
+
+        return await service.RateOrder(id, userId, score, cancellationToken);
+    }
 }
