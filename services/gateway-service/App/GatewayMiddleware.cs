@@ -36,8 +36,18 @@ public sealed class GatewayMiddleware
         try
         {
             var response = await _authClient.ValidateTokenAsync(new ValidateTokenRequest { AccessToken = token });
+            var roles = response.Roles.ToList();
+
+            // Проверка RBAC
+            if (!Rbac.Allowed(context.Request.Method, context.Request.Path, roles))
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsJsonAsync(new ErrorBody("FORBIDDEN", "role not allowed"));
+                return;
+            }
+
             context.Request.Headers["x-user-id"] = response.UserId;
-            context.Request.Headers["x-user-roles"] = string.Join(",", response.Roles);
+            context.Request.Headers["x-user-roles"] = string.Join(",", roles);
             await _next(context);
         }
         catch (RpcException)
