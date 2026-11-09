@@ -4,12 +4,15 @@ using Microsoft.Extensions.DependencyInjection;
 using PolesTaxi.OrderService.App.Db.Elastic;
 using PolesTaxi.OrderService.App.Db.Redis;
 using PolesTaxi.OrderService.Config;
+using PolesTaxi.OrderService.Entity.Service;
+using PolesTaxi.OrderService.Handler.Graphql;
 using PolesTaxi.OrderService.Handler.Grpc;
 using PolesTaxi.OrderService.Repository;
 using PolesTaxi.OrderService.Repository.Elastic;
 using PolesTaxi.OrderService.Repository.Redis;
 using PolesTaxi.OrderService.Service;
 using PolesTaxi.Shared.Hosting;
+using HotChocolate.AspNetCore;
 
 namespace PolesTaxi.OrderService.App;
 
@@ -32,6 +35,14 @@ public static class Run
 
         builder.Services.AddPolesTaxiGrpc();
 
+        // GraphQL
+        builder.Services.AddHttpContextAccessor();
+        builder.Services
+            .AddGraphQLServer()
+            .AddQueryType<OrderQueries>()
+            .AddMutationType<OrderMutations>()
+            .AddType<OrderType>(); // <-- используем явный тип
+
         // Elasticsearch
         builder.Services.AddSingleton(_ => ElasticStore.New(config.ElasticsearchUri, config.IndexName, cts.Token).GetAwaiter().GetResult());
 
@@ -52,6 +63,7 @@ public static class Run
 
         app.UseRouting();
         app.MapGrpcService<OrderGrpcHandler>();
+        app.MapGraphQL("/graphql");
         app.MapHealth();
 
         await app.StartAsync(cts.Token);
