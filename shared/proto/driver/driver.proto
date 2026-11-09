@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package polestaxi.driver.v1;
+
+option csharp_namespace = "PolesTaxi.Contracts.Driver.V1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service DriverService {
+  rpc GetMe(google.protobuf.Empty) returns (DriverResponse) {
+    option (google.api.http) = { get: "/v1/drivers/me" };
+  }
+  rpc Register(RegisterDriverRequest) returns (DriverResponse);
+  rpc SetStatus(SetStatusRequest) returns (DriverResponse) {
+    option (google.api.http) = { patch: "/v1/drivers/me/status" body: "*" };
+  }
+  rpc AcceptTrip(TripActionRequest) returns (DriverResponse);
+  rpc DeclineTrip(TripActionRequest) returns (DriverResponse);
+  rpc StartTrip(TripActionRequest) returns (DriverResponse);
+  rpc CompleteTrip(TripActionRequest) returns (DriverResponse);
+  rpc FindAvailable(FindAvailableRequest) returns (FindAvailableResponse);
+}
+
+message RegisterDriverRequest {
+  string user_id = 1;
+}
+
+message DriverResponse {
+  string id = 1;
+  string user_id = 2;
+  TaxiType taxi_type = 3;
+  string license_plate = 4;
+  DriverStatus status = 5;
+  double lat = 6;
+  double lon = 7;
+}
+
+enum TaxiType {
+  TAXI_TYPE_UNSPECIFIED = 0;
+  TAXI_TYPE_ECONOMY = 1;
+  TAXI_TYPE_COMFORT = 2;
+  TAXI_TYPE_BUSINESS = 3;
+}
+
+enum DriverStatus {
+  DRIVER_STATUS_UNSPECIFIED = 0;
+  DRIVER_STATUS_OFFLINE = 1;
+  DRIVER_STATUS_AVAILABLE = 2;
+  DRIVER_STATUS_ON_TRIP = 3;
+}
+
+message SetStatusRequest {
+  DriverStatus status = 1;
+}
+
+message TripActionRequest {
+  string order_id = 1;
+  string user_id = 2;
+}
+
+message FindAvailableRequest {
+  TaxiType taxi_type = 1;
+  double lat = 2;
+  double lon = 3;
+  int32 limit = 4;
+}
+
+message FindAvailableResponse {
+  repeated DriverResponse drivers = 1;
+}

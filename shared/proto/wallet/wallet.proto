@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package polestaxi.wallet.v1;
+
+option csharp_namespace = "PolesTaxi.Contracts.Wallet.V1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service WalletService {
+  rpc GetMe(google.protobuf.Empty) returns (WalletResponse) {
+    option (google.api.http) = { get: "/v1/wallets/me" };
+  }
+  rpc CreateWallet(CreateWalletRequest) returns (WalletResponse);
+  rpc Debit(MoneyRequest) returns (TransactionResponse);
+  rpc Credit(MoneyRequest) returns (TransactionResponse);
+}
+
+message CreateWalletRequest {
+  string user_id = 1;
+  string currency = 2;
+}
+
+message WalletResponse {
+  string id = 1;
+  string user_id = 2;
+  double balance = 3;
+  string currency = 4;
+}
+
+message MoneyRequest {
+  string user_id = 1;
+  string order_id = 2;
+  double amount = 3;
+  string idempotency_key = 4;
+}
+
+message TransactionResponse {
+  string id = 1;
+  string wallet_id = 2;
+  string type = 3;
+  double amount = 4;
+  string status = 5;
+  string order_id = 6;
+}

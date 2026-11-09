@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package polestaxi.order.v1;
+
+option csharp_namespace = "PolesTaxi.Contracts.Order.V1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders" body: "*" };
+  }
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { get: "/v1/orders/{id}" };
+  }
+  rpc CancelOrder(GetOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders/{id}/cancel" body: "*" };
+  }
+  rpc RateOrder(RateOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders/{id}/rate" body: "*" };
+  }
+  rpc Accept(GetOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders/{id}/accept" body: "*" };
+  }
+  rpc Decline(GetOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders/{id}/decline" body: "*" };
+  }
+  rpc Start(GetOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders/{id}/start" body: "*" };
+  }
+  rpc Complete(GetOrderRequest) returns (OrderResponse) {
+    option (google.api.http) = { post: "/v1/orders/{id}/complete" body: "*" };
+  }
+}
+
+message CreateOrderRequest {
+  double pickup_lat = 1;
+  double pickup_lon = 2;
+  string pickup_address = 3;
+  double dropoff_lat = 4;
+  double dropoff_lon = 5;
+  string dropoff_address = 6;
+  TaxiType taxi_type = 7;
+}
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+message RateOrderRequest {
+  string id = 1;
+  int32 score = 2;
+}
+
+message OrderResponse {
+  string id = 1;
+  string user_id = 2;
+  string driver_id = 3;
+  TaxiType taxi_type = 4;
+  OrderStatus status = 5;
+  double price = 6;
+  double surge = 7;
+  int64 distance_meters = 8;
+  int64 duration_seconds = 9;
+  int32 user_rating = 10;
+  int32 driver_rating = 11;
+  string comment = 12;
+}
+
+enum TaxiType {
+  TAXI_TYPE_UNSPECIFIED = 0;
+  TAXI_TYPE_ECONOMY = 1;
+  TAXI_TYPE_COMFORT = 2;
+  TAXI_TYPE_BUSINESS = 3;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_CREATED = 1;
+  ORDER_STATUS_DRIVER_ASSIGNED = 2;
+  ORDER_STATUS_IN_PROGRESS = 3;
+  ORDER_STATUS_COMPLETED = 4;
+  ORDER_STATUS_CANCELLED = 5;
+}
