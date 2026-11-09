@@ -1,6 +1,7 @@
 using PolesTaxi.Shared.Errors;
 using PolesTaxi.Shared.Types;
 using PolesTaxi.UserService.Entity.Service;
+using PolesTaxi.UserService.Gateway;
 using PolesTaxi.UserService.Repository;
 
 namespace PolesTaxi.UserService.Service;
@@ -9,14 +10,21 @@ public interface IUserAppService
 {
     Task<User> Register(string name, string phone, string email, string password, Role role, CancellationToken cancellationToken);
     Task<User> GetMe(string userId, CancellationToken cancellationToken);
-    Task<User> GetByEmailOrPhone(string login, CancellationToken cancellationToken); // <-- добавили
+    Task<User> GetByEmailOrPhone(string login, CancellationToken cancellationToken);
 }
 
 public sealed class UserAppService : IUserAppService
 {
     private readonly IUserRepository _users;
+    private readonly IDriverGateway _drivers;
+    private readonly IWalletGateway _wallets; // <-- добавили
 
-    public UserAppService(IUserRepository users) => _users = users;
+    public UserAppService(IUserRepository users, IDriverGateway drivers, IWalletGateway wallets)
+    {
+        _users = users;
+        _drivers = drivers;
+        _wallets = wallets;
+    }
 
     public async Task<User> Register(string name, string phone, string email, string password, Role role, CancellationToken cancellationToken)
     {
@@ -45,6 +53,20 @@ public sealed class UserAppService : IUserAppService
         Console.WriteLine($"[Register] Calling repository...");
         var result = await _users.Create(user, cancellationToken);
         Console.WriteLine($"[Register] Success: id={result.Id}");
+
+        // Создаем кошелек для пользователя
+        Console.WriteLine($"[Register] Creating wallet...");
+        await _wallets.CreateWallet(result.Id, cancellationToken);
+        Console.WriteLine($"[Register] Wallet created");
+
+        // Если роль Driver — создаем анкету водителя
+        if (role == Role.Driver)
+        {
+            Console.WriteLine($"[Register] Calling Driver Service...");
+            await _drivers.RegisterDriver(result.Id, cancellationToken);
+            Console.WriteLine($"[Register] Driver created");
+        }
+
         return result;
     }
 
@@ -53,7 +75,6 @@ public sealed class UserAppService : IUserAppService
         return await _users.GetById(userId, cancellationToken);
     }
 
-    // <-- ДОБАВИЛИ ЭТОТ МЕТОД
     public async Task<User> GetByEmailOrPhone(string login, CancellationToken cancellationToken)
     {
         try

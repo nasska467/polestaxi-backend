@@ -29,6 +29,7 @@ public sealed class UserGrpcHandler : PolesTaxi.Contracts.User.V1.UserService.Us
         }
         catch (Exception ex)
         {
+            // Возвращаем текст ошибки, чтобы увидеть причину
             throw new RpcException(new Status(StatusCode.Internal, ex.Message + " | " + ex.StackTrace));
         }
     }
@@ -40,7 +41,6 @@ public sealed class UserGrpcHandler : PolesTaxi.Contracts.User.V1.UserService.Us
         return ToResponse(user);
     }
 
-    // <-- ДОБАВИЛИ ЭТОТ МЕТОД
     public override async Task<VerifyCredentialsResponse> VerifyCredentials(VerifyCredentialsRequest request, ServerCallContext context)
     {
         try

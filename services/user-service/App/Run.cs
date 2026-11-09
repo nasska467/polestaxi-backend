@@ -3,15 +3,19 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using PolesTaxi.Contracts.Driver.V1;
+using PolesTaxi.Contracts.Wallet.V1;
 using PolesTaxi.Shared.Hosting;
 using PolesTaxi.UserService.App.Db.Mongo;
 using PolesTaxi.UserService.Config;
 using PolesTaxi.UserService.Entity.Repository;
+using PolesTaxi.UserService.Gateway;
+using PolesTaxi.UserService.Gateway.Grpc;
 using PolesTaxi.UserService.Handler.Grpc;
 using PolesTaxi.UserService.Repository;
 using PolesTaxi.UserService.Repository.Mongo;
 using PolesTaxi.UserService.Service;
-using MongoClient = PolesTaxi.UserService.App.Db.Mongo.MongoClient; // <-- добавили псевдоним
+using MongoClient = PolesTaxi.UserService.App.Db.Mongo.MongoClient;
 
 namespace PolesTaxi.UserService.App;
 
@@ -33,6 +37,14 @@ public static class Run
         });
 
         builder.Services.AddPolesTaxiGrpc();
+
+        // gRPC-клиент для Driver Service
+        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o => o.Address = new Uri("http://127.0.0.1:9083"));
+        builder.Services.AddScoped<IDriverGateway, DriverGrpcGateway>();
+
+        // gRPC-клиент для Wallet Service
+        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o => o.Address = new Uri("http://127.0.0.1:9085"));
+        builder.Services.AddScoped<IWalletGateway, WalletGrpcGateway>();
 
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(_ => MongoClient.New(config.MongoConnection, config.MongoDatabase, cts.Token).GetAwaiter().GetResult());
