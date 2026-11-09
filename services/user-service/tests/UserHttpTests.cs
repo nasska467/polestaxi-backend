@@ -9,6 +9,7 @@ using MongoDB.Driver;
 using PolesTaxi.Shared.Hosting;
 using PolesTaxi.UserService.App.Db.Mongo;
 using PolesTaxi.UserService.Entity.Repository;
+using PolesTaxi.UserService.Gateway;
 using PolesTaxi.UserService.Handler.Grpc;
 using PolesTaxi.UserService.Repository;
 using PolesTaxi.UserService.Repository.Mongo;
@@ -27,7 +28,6 @@ public sealed class UserHttpTests
         builder.WebHost.UseTestServer();
         builder.Services.AddPolesTaxiGrpc();
 
-        // Уникальная база для каждого запуска теста
         var dbName = $"polestaxi_users_test_{Guid.NewGuid():N}";
         builder.Services.AddSingleton(_ => MongoClient.New("mongodb://127.0.0.1:27018", dbName, CancellationToken.None).GetAwaiter().GetResult());
         builder.Services.AddSingleton<IMongoCollection<UserDocument>>(sp => sp.GetRequiredService<MongoClient>().Users);
@@ -35,13 +35,16 @@ public sealed class UserHttpTests
         builder.Services.AddScoped<IUserAppService, UserAppService>();
         builder.Services.AddScoped<UserGrpcHandler>();
 
+        // Заглушки для gRPC-шлюзов (чтобы DI мог создать UserAppService)
+        builder.Services.AddScoped<IDriverGateway, FakeDriverGateway>();
+        builder.Services.AddScoped<IWalletGateway, FakeWalletGateway>();
+
         var app = builder.Build();
         app.MapGrpcService<UserGrpcHandler>();
         await app.StartAsync();
 
         var client = app.GetTestClient();
 
-        // Уникальные email и телефон, чтобы избежать конфликта
         var uniqueEmail = $"ann_{Guid.NewGuid():N}@t.local";
         var uniquePhone = $"+7999{Random.Shared.Next(1000000, 9999999)}";
 
@@ -68,5 +71,15 @@ public sealed class UserHttpTests
         meJson!["email"].ToString().Should().Be(uniqueEmail);
 
         await app.StopAsync();
+    }
+
+    private sealed class FakeDriverGateway : IDriverGateway
+    {
+        public Task RegisterDriver(string userId, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakeWalletGateway : IWalletGateway
+    {
+        public Task CreateWallet(string userId, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
