@@ -10,7 +10,7 @@ public class WalletPgRepositoryTests
 {
     // ВНИМАНИЕ: Для работы этого теста нужна запущенная БД PostgreSQL.
     // Строка подключения должна совпадать с вашей (из docker-compose).
-   private const string ConnectionString = "Host=localhost;Port=15432;Database=polestaxi_wallet;Username=polestaxi;Password=polestaxi";
+    private const string ConnectionString = "Host=localhost;Port=15432;Database=polestaxi_wallet;Username=polestaxi;Password=polestaxi";
 
     [Fact]
     public async Task Insufficient_funds_is_conflict()
@@ -25,7 +25,7 @@ public class WalletPgRepositoryTests
         // Act & Assert
         // Пытаемся списать 10 рублей с пустого кошелька
         var ex = await Assert.ThrowsAsync<AppException>(() => 
-            repo.ApplyMoney(userId, WalletTxType.Debit, 10, null, "test:debit", CancellationToken.None));
+            repo.ApplyMoney(userId, WalletTxType.Debit, 10, null, $"test:debit:{userId}", CancellationToken.None));
             
         Assert.Equal("insufficient funds", ex.Message);
     }
@@ -36,13 +36,13 @@ public class WalletPgRepositoryTests
         // Arrange
         var repo = new WalletPgRepository(NpgsqlDataSource.Create(ConnectionString));
         var userId = Guid.NewGuid().ToString();
-        var key = "ord:debit";
+        var key = $"ord:debit:{userId}";
         
         // Создаем кошелек
         await repo.CreateWallet(userId, "RUB", CancellationToken.None);
         
-        // Зачисляем 100 рублей
-        await repo.ApplyMoney(userId, WalletTxType.Credit, 100, null, "signup:test", CancellationToken.None);
+        // Зачисляем 100 рублей с уникальным ключом
+        await repo.ApplyMoney(userId, WalletTxType.Credit, 100, null, $"signup:{userId}", CancellationToken.None);
 
         // Act
         // Дважды списываем 40 рублей с одним и тем же ключом
