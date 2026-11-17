@@ -21,7 +21,6 @@ public sealed class WalletGrpcHandler : PolesTaxi.Contracts.Wallet.V1.WalletServ
     public override async Task<WalletResponse> GetMe(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
     {
         var userId = CallContext.RequireUserId(context);
-        // В интерфейсе метод называется GetByUserId
         var wallet = await _service.GetByUserId(userId, context.CancellationToken);
         return ToResponse(wallet);
     }
@@ -29,13 +28,15 @@ public sealed class WalletGrpcHandler : PolesTaxi.Contracts.Wallet.V1.WalletServ
     public override async Task<TransactionResponse> Debit(MoneyRequest request, ServerCallContext context)
     {
         var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey;
-        var tx = await _service.ApplyMoney(
+        
+        // ИСПРАВЛЕНО: вызываем Debit, а не ApplyMoney
+        var tx = await _service.Debit(
             request.UserId, 
-            WalletTxType.Debit, 
-            (decimal)request.Amount, 
             string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId, 
+            (decimal)request.Amount, 
             key, 
             context.CancellationToken);
+            
         return ToTxResponse(tx);
     }
 
@@ -43,15 +44,16 @@ public sealed class WalletGrpcHandler : PolesTaxi.Contracts.Wallet.V1.WalletServ
     {
         var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey;
         var isRefund = key != null && key.Contains("refund", StringComparison.OrdinalIgnoreCase);
-        var type = isRefund ? WalletTxType.Refund : WalletTxType.Credit;
 
-        var tx = await _service.ApplyMoney(
+        // ИСПРАВЛЕНО: вызываем Credit, а не ApplyMoney
+        var tx = await _service.Credit(
             request.UserId, 
-            type, 
-            (decimal)request.Amount, 
             string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId, 
+            (decimal)request.Amount, 
+            isRefund, // <-- Передаем флаг возврата
             key, 
             context.CancellationToken);
+            
         return ToTxResponse(tx);
     }
 
