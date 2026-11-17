@@ -34,11 +34,11 @@ public static class Run
         
         builder.Services.AddScoped<IWalletRepository>(sp => new WalletPgRepository(sp.GetRequiredService<PgClient>().DataSource));
         
-        // ИСПРАВЛЕНО: Явно указываем, как создавать сервис с бонусом 5000
+        // ИСПРАВЛЕНО: Читаем бонус из переменной окружения через ParseBonus()
         builder.Services.AddScoped<IWalletAppService>(sp => 
             new WalletAppService(
                 sp.GetRequiredService<IWalletRepository>(), 
-                5000m // Размер бонуса
+                ParseBonus()
             ));
             
         builder.Services.AddScoped<WalletGrpcHandler>();
@@ -58,5 +58,12 @@ public static class Run
         await app.StopAsync();
         Console.WriteLine("shutdown");
         return 0;
+    }
+
+    // ДОБАВЛЕНО: Метод для чтения бонуса из переменной окружения
+    private static decimal ParseBonus()
+    {
+        var env = Environment.GetEnvironmentVariable("WALLET_INITIAL_BALANCE");
+        return decimal.TryParse(env, out var bonus) ? bonus : 5000m;
     }
 }
