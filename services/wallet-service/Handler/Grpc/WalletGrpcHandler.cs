@@ -27,33 +27,37 @@ public sealed class WalletGrpcHandler : PolesTaxi.Contracts.Wallet.V1.WalletServ
 
     public override async Task<TransactionResponse> Debit(MoneyRequest request, ServerCallContext context)
     {
-        var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey;
-        
-        // ИСПРАВЛЕНО: вызываем Debit, а не ApplyMoney
+        // 1. Пустую строку ключа приводим к null
+        var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
+
+        // 2. Вызываем метод Debit, передавая ключ
         var tx = await _service.Debit(
-            request.UserId, 
-            string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId, 
-            (decimal)request.Amount, 
-            key, 
+            request.UserId,
+            string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId,
+            (decimal)request.Amount,
+            key,
             context.CancellationToken);
-            
+
         return ToTxResponse(tx);
     }
 
     public override async Task<TransactionResponse> Credit(MoneyRequest request, ServerCallContext context)
     {
-        var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey;
-        var isRefund = key != null && key.Contains("refund", StringComparison.OrdinalIgnoreCase);
+        // 1. Пустую строку ключа приводим к null
+        var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
 
-        // ИСПРАВЛЕНО: вызываем Credit, а не ApplyMoney
+        // 2. Проверяем, является ли это возвратом (ключ содержит "refund")
+        var isRefund = key is not null && key.Contains("refund", StringComparison.OrdinalIgnoreCase);
+
+        // 3. Вызываем метод Credit, передавая флаг возврата и ключ
         var tx = await _service.Credit(
-            request.UserId, 
-            string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId, 
-            (decimal)request.Amount, 
-            isRefund, // <-- Передаем флаг возврата
-            key, 
+            request.UserId,
+            string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId,
+            (decimal)request.Amount,
+            isRefund,
+            key,
             context.CancellationToken);
-            
+
         return ToTxResponse(tx);
     }
 
