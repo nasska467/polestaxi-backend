@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using PolesTaxi.Contracts.Driver.V1; // <-- ДОБАВЛЕНО
+using PolesTaxi.Contracts.Wallet.V1;
 using PolesTaxi.OrderService.App.Db.Elastic;
 using PolesTaxi.OrderService.App.Db.Redis;
 using PolesTaxi.OrderService.Config;
 using PolesTaxi.OrderService.Entity.Service;
+using PolesTaxi.OrderService.Gateway;
+using PolesTaxi.OrderService.Gateway.Grpc;
 using PolesTaxi.OrderService.Handler.Graphql;
 using PolesTaxi.OrderService.Handler.Grpc;
 using PolesTaxi.OrderService.Repository;
@@ -41,7 +45,7 @@ public static class Run
             .AddGraphQLServer()
             .AddQueryType<OrderQueries>()
             .AddMutationType<OrderMutations>()
-            .AddType<OrderType>(); // <-- используем явный тип
+            .AddType<OrderType>();
 
         // Elasticsearch
         builder.Services.AddSingleton(_ => ElasticStore.New(config.ElasticsearchUri, config.IndexName, cts.Token).GetAwaiter().GetResult());
@@ -49,6 +53,19 @@ public static class Run
         // Redis
         builder.Services.AddSingleton(_ => RedisClient.New(config.RedisConnection, cts.Token).GetAwaiter().GetResult());
         builder.Services.AddSingleton(sp => new OrderRedisCache(sp.GetRequiredService<RedisClient>().Database, TimeSpan.FromMinutes(10)));
+
+        // Конфигурация цен
+        builder.Services.AddSingleton(PricingConfig.FromEnvironment());
+
+        // gRPC-клиент для Wallet Service
+        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o => 
+            o.Address = new Uri("http://127.0.0.1:9085"));
+        builder.Services.AddScoped<IWalletGateway, WalletGrpcGateway>();
+
+        // ДОБАВЛЕНО: gRPC-клиент для Driver Service
+        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o => 
+            o.Address = new Uri("http://127.0.0.1:9083"));
+        builder.Services.AddScoped<IDriverGateway, DriverGrpcGateway>();
 
         // Репозиторий и сервис
         builder.Services.AddScoped<IOrderRepository>(sp => new OrderElasticRepository(

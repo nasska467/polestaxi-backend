@@ -31,8 +31,16 @@ public static class Run
         builder.Services.AddPolesTaxiGrpc();
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(_ => PgClient.New(config.PostgresConnection));
+        
         builder.Services.AddScoped<IWalletRepository>(sp => new WalletPgRepository(sp.GetRequiredService<PgClient>().DataSource));
-        builder.Services.AddScoped<IWalletAppService, WalletAppService>();
+        
+        // ИСПРАВЛЕНО: Читаем бонус из переменной окружения через ParseBonus()
+        builder.Services.AddScoped<IWalletAppService>(sp => 
+            new WalletAppService(
+                sp.GetRequiredService<IWalletRepository>(), 
+                ParseBonus()
+            ));
+            
         builder.Services.AddScoped<WalletGrpcHandler>();
 
         var app = builder.Build();
@@ -50,5 +58,12 @@ public static class Run
         await app.StopAsync();
         Console.WriteLine("shutdown");
         return 0;
+    }
+
+    // ДОБАВЛЕНО: Метод для чтения бонуса из переменной окружения
+    private static decimal ParseBonus()
+    {
+        var env = Environment.GetEnvironmentVariable("WALLET_INITIAL_BALANCE");
+        return decimal.TryParse(env, out var bonus) ? bonus : 5000m;
     }
 }
