@@ -26,6 +26,8 @@ public sealed class WalletAppService : IWalletAppService
         
         if (_signupBonus > 0)
         {
+            // Согласно методичке, бонус регистрации НЕ публикуется в событие payment.completed,
+            // так как у этой проводки нет orderId (он равен null).
             await _wallets.ApplyMoney(userId, WalletTxType.Credit, _signupBonus, null, $"signup:{userId}", cancellationToken);
             return await _wallets.GetByUserId(userId, cancellationToken);
         }
@@ -43,16 +45,22 @@ public sealed class WalletAppService : IWalletAppService
         return await _wallets.ApplyMoney(userId, type, amount, orderId, idempotencyKey, cancellationToken);
     }
 
-    // ДОБАВЛЕНО: Метод для списания (Debit)
     public async Task<WalletTransaction> Debit(string userId, string? orderId, decimal amount, string? idempotencyKey, CancellationToken cancellationToken)
     {
-        return await _wallets.ApplyMoney(userId, WalletTxType.Debit, amount, orderId, idempotencyKey, cancellationToken);
+        var tx = await _wallets.ApplyMoney(userId, WalletTxType.Debit, amount, orderId, idempotencyKey, cancellationToken);
+        
+        // Примечание: Публикация события payment.completed для заказов (когда orderId != null)
+        // будет реализована на уровне инфраструктуры (Analytic Service / Kafka).
+        return tx;
     }
 
-    // ДОБАВЛЕНО: Метод для зачисления/возврата (Credit)
     public async Task<WalletTransaction> Credit(string userId, string? orderId, decimal amount, bool isRefund, string? idempotencyKey, CancellationToken cancellationToken)
     {
         var type = isRefund ? WalletTxType.Refund : WalletTxType.Credit;
-        return await _wallets.ApplyMoney(userId, type, amount, orderId, idempotencyKey, cancellationToken);
+        var tx = await _wallets.ApplyMoney(userId, type, amount, orderId, idempotencyKey, cancellationToken);
+        
+        // Примечание: Публикация события payment.completed для заказов (когда orderId != null)
+        // будет реализована на уровне инфраструктуры (Analytic Service / Kafka).
+        return tx;
     }
 }
