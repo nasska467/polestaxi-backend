@@ -17,7 +17,7 @@ public sealed class UserAppService : IUserAppService
 {
     private readonly IUserRepository _users;
     private readonly IDriverGateway _drivers;
-    private readonly IWalletGateway _wallets; // <-- добавили
+    private readonly IWalletGateway _wallets;
 
     public UserAppService(IUserRepository users, IDriverGateway drivers, IWalletGateway wallets)
     {
@@ -34,8 +34,7 @@ public sealed class UserAppService : IUserAppService
             throw AppException.Validation("role must be User or Driver");
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
-        Console.WriteLine($"[Register] Password hashed");
-
+        
         var user = new User
         {
             Id = string.Empty,
@@ -50,21 +49,44 @@ public sealed class UserAppService : IUserAppService
             UpdatedAt = DateTime.UtcNow
         };
 
-        Console.WriteLine($"[Register] Calling repository...");
+        // 1. Создаем пользователя в БД
         var result = await _users.Create(user, cancellationToken);
-        Console.WriteLine($"[Register] Success: id={result.Id}");
+        Console.WriteLine($"[Register] User created: id={result.Id}");
 
-        // Создаем кошелек для пользователя
-        Console.WriteLine($"[Register] Creating wallet...");
-        await _wallets.CreateWallet(result.Id, cancellationToken);
-        Console.WriteLine($"[Register] Wallet created");
-
-        // Если роль Driver — создаем анкету водителя
-        if (role == Role.Driver)
+        try
         {
-            Console.WriteLine($"[Register] Calling Driver Service...");
-            await _drivers.RegisterDriver(result.Id, cancellationToken);
-            Console.WriteLine($"[Register] Driver created");
+            // 2. Создаем кошелек
+            Console.WriteLine($"[Register] Creating wallet...");
+            await _wallets.CreateWallet(result.Id, cancellationToken);
+            Console.WriteLine($"[Register] Wallet created");
+
+            // 3. Если роль Driver — создаем анкету водителя
+            if (role == Role.Driver)
+            {
+                Console.WriteLine($"[Register] Calling Driver Service...");
+                await _drivers.RegisterDriver(result.Id, cancellationToken);
+                Console.WriteLine($"[Register] Driver created");
+            }
+        }
+        catch (Exception ex)
+        {
+            // 4. КОМПЕНСАЦИЯ: если что-то пошло не так, помечаем пользователя как удаленного
+            Console.WriteLine($"[Register] Error: {ex.Message}. Rolling back user creation...");
+            
+            try
+            {
+                // Используем SoftDelete, который уже есть в репозитории
+                await _users.SoftDelete(result.Id, cancellationToken);
+                Console.WriteLine($"[Register] User {result.Id} soft-deleted (compensation)");
+            }
+            catch (Exception deleteEx)
+            {
+                // Если удалить не удалось — логируем, но не скрываем исходную ошибку
+                Console.Error.WriteLine($"[Register] Failed to soft-delete user {result.Id}: {deleteEx.Message}");
+            }
+
+            // Пробрасываем исходную ошибку клиенту
+            throw;
         }
 
         return result;
