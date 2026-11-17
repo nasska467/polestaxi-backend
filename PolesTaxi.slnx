@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/services/" />
+  <Folder Name="/services/analytic-service/">
+    <Project Path="services/analytic-service/PolesTaxi.AnalyticService.csproj" />
+  </Folder>
   <Folder Name="/services/auth-service/" />
   <Folder Name="/services/auth-service/tests/">
     <Project Path="services/auth-service/tests/PolesTaxi.AuthService.Tests.csproj" />
