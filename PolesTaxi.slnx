@@ -4,7 +4,15 @@
   <Folder Name="/services/auth-service/tests/">
     <Project Path="services/auth-service/tests/PolesTaxi.AuthService.Tests.csproj" />
   </Folder>
-  <Folder Name="/services/user-service/" />
+  <Folder Name="/services/order-service/">
+    <Project Path="services/order-service/PolesTaxi.OrderService.csproj" />
+  </Folder>
+  <Folder Name="/services/order-service/tests/">
+    <Project Path="services/order-service/tests/PolesTaxi.OrderService.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/user-service/">
+    <Project Path="services/user-service/PolesTaxi.UserService.csproj" />
+  </Folder>
   <Folder Name="/services/user-service/tests/">
     <Project Path="services/user-service/tests/PolesTaxi.UserService.Tests.csproj" />
   </Folder>
