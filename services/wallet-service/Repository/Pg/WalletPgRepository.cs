@@ -42,15 +42,35 @@ public sealed class WalletPgRepository : IWalletRepository
         return ToWallet(row);
     }
 
-    public async Task<WalletTransaction> ApplyMoney(string userId, WalletTxType type, decimal amount, string? orderId, CancellationToken cancellationToken)
+    public async Task<WalletTransaction> ApplyMoney(string userId, WalletTxType type, decimal amount, string? orderId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (amount <= 0) throw AppException.Validation("amount must be positive");
+
+        // ВЫНОСИМ ПЕРЕМЕННУЮ СЮДА, ЧТОБЫ ОНА БЫЛА ВИДНА В CATCH
+        var key = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
 
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);
         await using var tx = await conn.BeginTransactionAsync(cancellationToken);
 
         try
         {
+            if (key is not null)
+            {
+                var existing = await conn.QuerySingleOrDefaultAsync<TransactionRow>(
+                    """
+                    SELECT id AS Id, wallet_id AS WalletId, type AS Type, amount AS Amount, status AS Status,
+                           order_id AS OrderId, idempotency_key AS IdempotencyKey, created_at AS CreatedAt
+                    FROM transactions WHERE idempotency_key = @key
+                    """,
+                    new { key }, tx);
+                
+                if (existing is not null)
+                {
+                    await tx.CommitAsync(cancellationToken);
+                    return ToTx(existing);
+                }
+            }
+
             var wallet = await conn.QuerySingleOrDefaultAsync<WalletRow>(
                 "SELECT id AS Id, user_id AS UserId, balance AS Balance, currency AS Currency, created_at AS CreatedAt FROM wallets WHERE user_id = @userId FOR UPDATE",
                 new { userId }, tx);
@@ -65,13 +85,32 @@ public sealed class WalletPgRepository : IWalletRepository
             await conn.ExecuteAsync("UPDATE wallets SET balance = @balance WHERE id = @id", new { balance = newBalance, id = wallet.Id }, tx);
 
             var row = await conn.QuerySingleAsync<TransactionRow>(@"
-                INSERT INTO transactions (id, wallet_id, type, amount, status, order_id)
-                VALUES (@Id, @WalletId, @Type, @Amount, 'completed', @OrderId)
-                RETURNING id AS Id, wallet_id AS WalletId, type AS Type, amount AS Amount, status AS Status, order_id AS OrderId, created_at AS CreatedAt",
-                new { Id = Guid.NewGuid(), WalletId = wallet.Id, Type = TypeToWire(type), Amount = amount, OrderId = orderId }, tx);
+                INSERT INTO transactions (id, wallet_id, type, amount, status, order_id, idempotency_key)
+                VALUES (@Id, @WalletId, @Type, @Amount, 'completed', @OrderId, @IdempotencyKey)
+                RETURNING id AS Id, wallet_id AS WalletId, type AS Type, amount AS Amount, status AS Status, order_id AS OrderId, idempotency_key AS IdempotencyKey, created_at AS CreatedAt",
+                new { Id = Guid.NewGuid(), WalletId = wallet.Id, Type = TypeToWire(type), Amount = amount, OrderId = orderId, IdempotencyKey = key }, tx);
 
             await tx.CommitAsync(cancellationToken);
             return ToTx(row);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505" && ex.ConstraintName == "ux_transactions_idempotency")
+        {
+            // Обработка race condition: ключ уже вставлен параллельным запросом
+            await tx.RollbackAsync(cancellationToken);
+            
+            using var newConn = await _dataSource.OpenConnectionAsync(cancellationToken);
+            var existing = await newConn.QuerySingleOrDefaultAsync<TransactionRow>(
+                """
+                SELECT id AS Id, wallet_id AS WalletId, type AS Type, amount AS Amount, status AS Status,
+                       order_id AS OrderId, idempotency_key AS IdempotencyKey, created_at AS CreatedAt
+                FROM transactions WHERE idempotency_key = @key
+                """,
+                new { key });
+                
+            if (existing is null)
+                throw AppException.Conflict("idempotency key conflict but record not found");
+                
+            return ToTx(existing);
         }
         catch
         {
@@ -97,6 +136,7 @@ public sealed class WalletPgRepository : IWalletRepository
         Amount = row.Amount,
         Status = StatusFromWire(row.Status),
         OrderId = row.OrderId,
+        IdempotencyKey = row.IdempotencyKey,
         CreatedAt = row.CreatedAt
     };
 

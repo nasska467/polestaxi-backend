@@ -31,8 +31,16 @@ public static class Run
         builder.Services.AddPolesTaxiGrpc();
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(_ => PgClient.New(config.PostgresConnection));
+        
         builder.Services.AddScoped<IWalletRepository>(sp => new WalletPgRepository(sp.GetRequiredService<PgClient>().DataSource));
-        builder.Services.AddScoped<IWalletAppService, WalletAppService>();
+        
+        // ИСПРАВЛЕНО: Явно указываем, как создавать сервис с бонусом 5000
+        builder.Services.AddScoped<IWalletAppService>(sp => 
+            new WalletAppService(
+                sp.GetRequiredService<IWalletRepository>(), 
+                5000m // Размер бонуса
+            ));
+            
         builder.Services.AddScoped<WalletGrpcHandler>();
 
         var app = builder.Build();

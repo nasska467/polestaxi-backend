@@ -21,19 +21,37 @@ public sealed class WalletGrpcHandler : PolesTaxi.Contracts.Wallet.V1.WalletServ
     public override async Task<WalletResponse> GetMe(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
     {
         var userId = CallContext.RequireUserId(context);
+        // В интерфейсе метод называется GetByUserId
         var wallet = await _service.GetByUserId(userId, context.CancellationToken);
         return ToResponse(wallet);
     }
 
     public override async Task<TransactionResponse> Debit(MoneyRequest request, ServerCallContext context)
     {
-        var tx = await _service.ApplyMoney(request.UserId, WalletTxType.Debit, (decimal)request.Amount, request.OrderId, context.CancellationToken);
+        var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey;
+        var tx = await _service.ApplyMoney(
+            request.UserId, 
+            WalletTxType.Debit, 
+            (decimal)request.Amount, 
+            string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId, 
+            key, 
+            context.CancellationToken);
         return ToTxResponse(tx);
     }
 
     public override async Task<TransactionResponse> Credit(MoneyRequest request, ServerCallContext context)
     {
-        var tx = await _service.ApplyMoney(request.UserId, WalletTxType.Credit, (decimal)request.Amount, request.OrderId, context.CancellationToken);
+        var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey;
+        var isRefund = key != null && key.Contains("refund", StringComparison.OrdinalIgnoreCase);
+        var type = isRefund ? WalletTxType.Refund : WalletTxType.Credit;
+
+        var tx = await _service.ApplyMoney(
+            request.UserId, 
+            type, 
+            (decimal)request.Amount, 
+            string.IsNullOrWhiteSpace(request.OrderId) ? null : request.OrderId, 
+            key, 
+            context.CancellationToken);
         return ToTxResponse(tx);
     }
 
