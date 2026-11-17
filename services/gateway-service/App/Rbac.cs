@@ -1,37 +1,40 @@
+using PolesTaxi.Shared.Types; // Для Role
+
 namespace PolesTaxi.GatewayService.App;
 
 public static class Rbac
 {
-    public static bool Allowed(string method, string path, IReadOnlyList<string> roles)
+    public static bool Allowed(string method, string path, List<Role> roles)
     {
-        // Анонимные пути (проверяются до RBAC)
-        if (path.StartsWith("/v1/auth/") || path.StartsWith("/v1/users/register") || path == "/healthz")
-            return true;
-
-        // Аналитика — только Analyst и Admin
+        // Аналитика: Analyst, Admin
         if (path.StartsWith("/v1/analytics"))
-            return roles.Contains("Analyst") || roles.Contains("Admin");
+            return roles.Any(r => r is Role.Analyst or Role.Admin);
 
-        // Управление ролями — только Admin
-        if (path.StartsWith("/v1/users/") && path.EndsWith("/roles"))
-            return roles.Contains("Admin");
-
-        // Профиль водителя — Driver и Admin
+        // Профиль водителя: Driver, Admin
         if (path.StartsWith("/v1/drivers"))
-            return roles.Contains("Driver") || roles.Contains("Admin");
+            return roles.Any(r => r is Role.Driver or Role.Admin);
 
-        // Кошелек — User, Driver, Admin
+        // Кошелёк: User, Driver, Admin
         if (path.StartsWith("/v1/wallets"))
-            return roles.Contains("User") || roles.Contains("Driver") || roles.Contains("Admin");
+            return roles.Any(r => r is Role.User or Role.Driver or Role.Admin);
 
-        // Заказы и GraphQL — User, Driver, Analyst, Admin
+        // Назначение ролей: только Admin
+        if (method == "POST" && path.StartsWith("/v1/users/") && path.EndsWith("/roles"))
+            return roles.Contains(Role.Admin);
+
+        // Создание заказа: User, Admin
+        if (method == "POST" && path == "/v1/orders")
+            return roles.Any(r => r is Role.User or Role.Admin);
+
+        // Действия с поездкой (accept, decline, start, complete): Driver, Admin
+        if (path.StartsWith("/v1/orders/") && (path.EndsWith("/accept") || path.EndsWith("/decline") || path.EndsWith("/start") || path.EndsWith("/complete")))
+            return roles.Any(r => r is Role.Driver or Role.Admin);
+
+        // Чтение и отмена заказа, GraphQL: все роли
         if (path.StartsWith("/v1/orders") || path.StartsWith("/graphql"))
-            return roles.Contains("User") || roles.Contains("Driver") || roles.Contains("Analyst") || roles.Contains("Admin");
+            return roles.Any(r => r is Role.User or Role.Driver or Role.Analyst or Role.Admin);
 
-        // Профиль пользователя — все авторизованные
-        if (path.StartsWith("/v1/users/me"))
-            return roles.Count > 0;
-
-        return false;
+        // По умолчанию — запрещено (или разрешено, если не указано иное)
+        return false; 
     }
 }
