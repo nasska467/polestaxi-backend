@@ -15,5 +15,11 @@
     <PackageReference Include="Grpc.AspNetCore.Web" Version="2.67.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.67.0" />
     <PackageReference Include="Microsoft.AspNetCore.Grpc.JsonTranscoding" Version="8.0.11" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+    <PackageReference Include="Polly.Core" Version="8.5.2" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
   </ItemGroup>
 </Project>

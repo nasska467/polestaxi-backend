@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
-using PolesTaxi.Contracts.Driver.V1; // <-- ДОБАВЛЕНО
+using PolesTaxi.Contracts.Driver.V1;
 using PolesTaxi.Contracts.Wallet.V1;
 using PolesTaxi.OrderService.App.Db.Elastic;
 using PolesTaxi.OrderService.App.Db.Redis;
@@ -31,6 +31,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "order-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8084);
@@ -57,14 +59,16 @@ public static class Run
         // Конфигурация цен
         builder.Services.AddSingleton(PricingConfig.FromEnvironment());
 
-        // gRPC-клиент для Wallet Service
-        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o => 
-            o.Address = new Uri("http://127.0.0.1:9085"));
+        // gRPC-клиент для Wallet Service с политикой Polly
+        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o =>
+            o.Address = new Uri(Environment.GetEnvironmentVariable("WALLET_GRPC_ADDR") ?? "http://127.0.0.1:9085"))
+            .AddPolesTaxiResilience();
         builder.Services.AddScoped<IWalletGateway, WalletGrpcGateway>();
 
-        // ДОБАВЛЕНО: gRPC-клиент для Driver Service
-        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o => 
-            o.Address = new Uri("http://127.0.0.1:9083"));
+        // gRPC-клиент для Driver Service с политикой Polly
+        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o =>
+            o.Address = new Uri(Environment.GetEnvironmentVariable("DRIVER_GRPC_ADDR") ?? "http://127.0.0.1:9083"))
+            .AddPolesTaxiResilience();
         builder.Services.AddScoped<IDriverGateway, DriverGrpcGateway>();
 
         // Репозиторий и сервис
@@ -81,7 +85,13 @@ public static class Run
         app.UseRouting();
         app.MapGrpcService<OrderGrpcHandler>();
         app.MapGraphQL("/graphql");
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            var elastic = app.Services.GetRequiredService<ElasticStore>();
+            var redis = app.Services.GetRequiredService<RedisClient>();
+            var ping = await elastic.Client.PingAsync(ct);
+            return ping.IsValidResponse && redis.Multiplexer.IsConnected;
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"order-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");

@@ -25,6 +25,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "auth-service");
+
         // Kestrel: 8082 (HTTP) и 9082 (gRPC)
         builder.WebHost.ConfigureKestrel(options =>
         {
@@ -38,8 +40,9 @@ public static class Run
         builder.Services.AddSingleton(_ => RedisClient.New(config.RedisConnection, cts.Token).GetAwaiter().GetResult());
         builder.Services.AddScoped<IAuthRepository>(sp => new AuthRedisRepository(sp.GetRequiredService<RedisClient>().Database));
 
-        // gRPC-клиент к User
-        builder.Services.AddGrpcClient<UserService.UserServiceClient>(o => o.Address = new Uri(config.UserGrpcAddr));
+        // gRPC-клиент к User с политикой Polly
+        builder.Services.AddGrpcClient<UserService.UserServiceClient>(o => o.Address = new Uri(config.UserGrpcAddr))
+            .AddPolesTaxiResilience();
         builder.Services.AddScoped<IUserGateway, UserGrpcGateway>();
 
         // Сервис аутентификации
@@ -56,7 +59,11 @@ public static class Run
 
         app.UseRouting();
         app.MapGrpcService<AuthGrpcHandler>();
-        app.MapHealth();
+        app.UsePlatform(_ =>
+        {
+            var redis = app.Services.GetRequiredService<RedisClient>();
+            return Task.FromResult(redis.Multiplexer.IsConnected);
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"auth-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");

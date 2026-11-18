@@ -22,6 +22,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "wallet-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8085);
@@ -34,7 +36,6 @@ public static class Run
         
         builder.Services.AddScoped<IWalletRepository>(sp => new WalletPgRepository(sp.GetRequiredService<PgClient>().DataSource));
         
-        // ИСПРАВЛЕНО: Читаем бонус из переменной окружения через ParseBonus()
         builder.Services.AddScoped<IWalletAppService>(sp => 
             new WalletAppService(
                 sp.GetRequiredService<IWalletRepository>(), 
@@ -47,7 +48,15 @@ public static class Run
 
         app.UseRouting();
         app.MapGrpcService<WalletGrpcHandler>();
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            var pg = app.Services.GetRequiredService<PgClient>();
+            await using var conn = await pg.DataSource.OpenConnectionAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1";
+            await cmd.ExecuteScalarAsync(ct);
+            return true;
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"wallet-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");
@@ -60,7 +69,6 @@ public static class Run
         return 0;
     }
 
-    // ДОБАВЛЕНО: Метод для чтения бонуса из переменной окружения
     private static decimal ParseBonus()
     {
         var env = Environment.GetEnvironmentVariable("WALLET_INITIAL_BALANCE");
