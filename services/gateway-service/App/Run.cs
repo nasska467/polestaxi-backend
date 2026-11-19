@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using PolesTaxi.Contracts.Auth.V1;
 using PolesTaxi.GatewayService.App;
 using PolesTaxi.GatewayService.Config;
+using PolesTaxi.Shared.Hosting;
+using Prometheus;
 
 namespace PolesTaxi.GatewayService.App;
 
@@ -18,13 +20,16 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "gateway-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8080);
         });
 
-        // gRPC-клиент к Auth для проверки токенов
-        builder.Services.AddGrpcClient<AuthService.AuthServiceClient>(o => o.Address = new Uri(config.AuthGrpcAddr));
+        // gRPC-клиент к Auth для проверки токенов с политикой Polly
+        builder.Services.AddGrpcClient<AuthService.AuthServiceClient>(o => o.Address = new Uri(config.AuthGrpcAddr))
+            .AddPolesTaxiResilience();
 
         // YARP
         builder.Services.AddReverseProxy()
@@ -32,9 +37,11 @@ public static class Run
 
         var app = builder.Build();
 
+        app.UseMiddleware<CorrelationMiddleware>();
+        app.UseHttpMetrics();
         app.UseMiddleware<GatewayMiddleware>();
         app.MapReverseProxy();
-        app.MapGet("/healthz", () => Results.Text("ok"));
+        app.MapOps();
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"gateway ready http=http://0.0.0.0:8080");

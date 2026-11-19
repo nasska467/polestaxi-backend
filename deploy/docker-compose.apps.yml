@@ -1,0 +1,175 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4318:4318"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  user:
+    build:
+      context: ..
+      dockerfile: services/user-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0.0:8081
+      - GRPC_ADDR=http://0.0.0.0:9081
+      - MONGO_CONNECTION=mongodb://mongo:27017
+      - MONGO_USER_DATABASE=polestaxi_users
+      - KAFKA_BROKERS=kafka:29092
+      - DRIVER_GRPC_ADDR=http://driver:9083
+      - WALLET_GRPC_ADDR=http://wallet:9085
+      - SEED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:9081:9081"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  auth:
+    build:
+      context: ..
+      dockerfile: services/auth-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0
+      - GRPC_ADDR=http://0.0.0
+      - REDIS_CONNECTION=redis:6379
+      - USER_GRPC_ADDR=http://user:9081
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8082:8082"
+      - "127.0.0.1:9082:9082"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8082/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  driver:
+    build:
+      context: ..
+      dockerfile: services/driver-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0
+      - GRPC_ADDR=http://0.0.0
+      - MONGO_CONNECTION=mongodb://mongo:27017
+      - MONGO_DRIVER_DATABASE=polestaxi_drivers
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8083:8083"
+      - "127.0.0.1:9083:9083"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8083/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  order:
+    build:
+      context: ..
+      dockerfile: services/order-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0
+      - GRPC_ADDR=http://0.0.0
+      - ELASTICSEARCH_URI=http://elasticsearch:9200
+      - ELASTICSEARCH_INDEX=orders
+      - REDIS_CONNECTION=redis:6379
+      - WALLET_GRPC_ADDR=http://wallet:9085
+      - DRIVER_GRPC_ADDR=http://driver:9083
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8084:8084"
+      - "127.0.0.1:9084:9084"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8084/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wallet:
+    build:
+      context: ..
+      dockerfile: services/wallet-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0.0:8085
+      - GRPC_ADDR=http://0.0.0.0:9085
+      - POSTGRES_CONNECTION=Host=postgres;Port=5432;Database=polestaxi_wallet;Username=polestaxi;Password=polestaxi
+      - REDIS_CONNECTION=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8085:8085"
+      - "127.0.0.1:9085:9085"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8085/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  analytic:
+    build:
+      context: ..
+      dockerfile: services/analytic-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0
+      - GRPC_ADDR=http://0.0.0
+      - CLICKHOUSE_CONNECTION=Host=clickhouse;Port=8123;Database=default;Username=default;Password=
+      - KAFKA_BROKERS=kafka:29092
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8086:8086"
+      - "127.0.0.1:9086:9086"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8086/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: services/gateway-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HTTP_ADDR=http://0.0.0
+      - AUTH_GRPC_ADDR=http://auth:9082
+      - USER_HTTP=http://user:8081/
+      - AUTH_HTTP=http://auth:8082/
+      - DRIVER_HTTP=http://driver:8083/
+      - ORDER_HTTP=http://order:8084/
+      - WALLET_HTTP=http://wallet:8085/
+      - ANALYTIC_HTTP=http://analytic:8086/
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "127.0.0.1:8088:80"
+    depends_on:
+      - gateway

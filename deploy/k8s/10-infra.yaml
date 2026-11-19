@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: mongo } }
+  template:
+    metadata: { labels: { app: mongo } }
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports: [{ containerPort: 27017 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: polestaxi
+spec:
+  selector: { app: mongo }
+  ports: [{ port: 27017, targetPort: 27017 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis } }
+  template:
+    metadata: { labels: { app: redis } }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.0
+          ports: [{ containerPort: 6379 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: polestaxi
+spec:
+  selector: { app: redis }
+  ports: [{ port: 6379, targetPort: 6379 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_USER, value: "polestaxi" }
+            - { name: POSTGRES_PASSWORD, value: "polestaxi" }
+            - { name: POSTGRES_DB, value: "polestaxi_wallet" }
+          ports: [{ containerPort: 5432 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: polestaxi
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: elasticsearch } }
+  template:
+    metadata: { labels: { app: elasticsearch } }
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.19.6
+          env:
+            - { name: discovery.type, value: "single-node" }
+            - { name: xpack.security.enabled, value: "false" }
+            - { name: ES_JAVA_OPTS, value: "-Xms256m -Xmx256m" }
+          ports: [{ containerPort: 9200 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: polestaxi
+spec:
+  selector: { app: elasticsearch }
+  ports: [{ port: 9200, targetPort: 9200 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: clickhouse } }
+  template:
+    metadata: { labels: { app: clickhouse } }
+    spec:
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:25.8
+          env:
+            - { name: CLICKHOUSE_SKIP_USER_SETUP, value: "1" }
+          ports: [{ containerPort: 8123 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: polestaxi
+spec:
+  selector: { app: clickhouse }
+  ports: [{ port: 8123, targetPort: 8123 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: kafka } }
+  template:
+    metadata: { labels: { app: kafka } }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.6.1
+          env:
+            - { name: KAFKA_NODE_ID, value: "1" }
+            - { name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "PLAINTEXT://kafka:29092" }
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS, value: "0" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
+            - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@kafka:29093" }
+            - { name: KAFKA_LISTENERS, value: "PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
+            - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: "CONTROLLER" }
+            - { name: KAFKA_LOG_DIRS, value: "/tmp/kraft-combined-logs" }
+            - { name: CLUSTER_ID, value: "MkU3OEVBNTcwNTJENDM2Qk" }
+            - { name: KAFKA_HEAP_OPTS, value: "-Xmx384m -Xms256m" }
+          ports:
+            - { containerPort: 29092 }
+            - { containerPort: 29093 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: polestaxi
+spec:
+  selector: { app: kafka }
+  ports:
+    - { name: broker, port: 29092, targetPort: 29092 }
+    - { name: controller, port: 29093, targetPort: 29093 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: jaeger } }
+  template:
+    metadata: { labels: { app: jaeger } }
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.62.0
+          env:
+            - { name: COLLECTOR_OTLP_ENABLED, value: "true" }
+          ports:
+            - { containerPort: 16686 }
+            - { containerPort: 4318 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  namespace: polestaxi
+spec:
+  selector: { app: jaeger }
+  ports:
+    - { name: ui, port: 16686, targetPort: 16686 }
+    - { name: otlp, port: 4318, targetPort: 4318 }

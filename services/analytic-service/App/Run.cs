@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using ClickHouse.Client.ADO;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using PolesTaxi.AnalyticService.App.Db.ClickHouse;
@@ -22,6 +23,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "analytic-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8086);
@@ -37,7 +40,15 @@ public static class Run
         app.MapGet("/v1/analytics/orders", async (AnalyticHandler h, HttpContext ctx) => await h.GetOrders(ctx));
         app.MapGet("/v1/analytics/ratings", async (AnalyticHandler h, HttpContext ctx) => await h.GetRatings(ctx));
         app.MapGet("/v1/analytics/dashboard", async (AnalyticHandler h, HttpContext ctx) => await h.GetDashboard(ctx));
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            await using var conn = new ClickHouseConnection(config.ClickHouseConnection);
+            await conn.OpenAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1";
+            await cmd.ExecuteScalarAsync(ct);
+            return true;
+        });
 
         await app.StartAsync(cts.Token);
 

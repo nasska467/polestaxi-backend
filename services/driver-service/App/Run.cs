@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using PolesTaxi.DriverService.App.Db.Mongo;
 using PolesTaxi.DriverService.Config;
@@ -25,6 +26,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "driver-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8083);
@@ -43,7 +46,12 @@ public static class Run
 
         app.UseRouting();
         app.MapGrpcService<DriverGrpcHandler>();
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            var mongo = app.Services.GetRequiredService<MongoClient>();
+            await mongo.Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: ct);
+            return true;
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"driver-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");
