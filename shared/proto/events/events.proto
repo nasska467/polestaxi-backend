@@ -5,6 +5,7 @@ package polestaxi.events.v1;
 option csharp_namespace = "PolesTaxi.Contracts.Events.V1";
 
 import "google/protobuf/timestamp.proto";
+import "driver/driver.proto"; // <-- ДОБАВЛЕН ИМПОРТ
 
 message UserRegisteredEvent {
   string user_id = 1;
@@ -27,7 +28,7 @@ message OrderStatusChangedEvent {
   google.protobuf.Timestamp occurred_at = 6;
   double price = 7;
   int64 distance_meters = 8;
-  string taxi_type = 9;
+  polestaxi.driver.v1.TaxiType taxi_type = 9; // <-- ИСПРАВЛЕНО
 }
 
 message PaymentCompletedEvent {

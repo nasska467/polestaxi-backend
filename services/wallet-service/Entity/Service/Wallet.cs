@@ -20,5 +20,9 @@ public sealed class WalletTransaction
     public decimal Amount { get; init; }
     public WalletTxStatus Status { get; init; }
     public string? OrderId { get; init; }
+    
+    // ДОБАВЛЕНО:
+    public string? IdempotencyKey { get; init; } 
+    
     public DateTime CreatedAt { get; init; }
 }

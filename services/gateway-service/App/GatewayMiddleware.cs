@@ -2,6 +2,7 @@ using System.Net;
 using Grpc.Core;
 using PolesTaxi.Contracts.Auth.V1;
 using PolesTaxi.Shared.Errors;
+using PolesTaxi.Shared.Types;
 
 namespace PolesTaxi.GatewayService.App;
 
@@ -36,7 +37,12 @@ public sealed class GatewayMiddleware
         try
         {
             var response = await _authClient.ValidateTokenAsync(new ValidateTokenRequest { AccessToken = token });
-            var roles = response.Roles.ToList();
+
+            // Преобразуем строки ролей из gRPC-ответа в C# enum Role
+            var roles = response.Roles
+                .Select(r => Enum.TryParse<Role>(r.Replace("ROLE_", "", StringComparison.OrdinalIgnoreCase), true, out var role) ? role : Role.Unspecified)
+                .Where(r => r != Role.Unspecified)
+                .ToList();
 
             // Проверка RBAC
             if (!Rbac.Allowed(context.Request.Method, context.Request.Path, roles))
@@ -47,7 +53,7 @@ public sealed class GatewayMiddleware
             }
 
             context.Request.Headers["x-user-id"] = response.UserId;
-            context.Request.Headers["x-user-roles"] = string.Join(",", roles);
+            context.Request.Headers["x-user-roles"] = string.Join(",", roles.Select(r => r.ToWire()));
             await _next(context);
         }
         catch (RpcException)
@@ -63,6 +69,8 @@ public sealed class GatewayMiddleware
         return value.StartsWith("/v1/auth/login", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/v1/auth/refresh", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/v1/users/register", StringComparison.OrdinalIgnoreCase)
-            || value.Equals("/healthz", StringComparison.OrdinalIgnoreCase);
+            || value.Equals("/healthz", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/readyz", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/metrics", StringComparison.OrdinalIgnoreCase);
     }
 }

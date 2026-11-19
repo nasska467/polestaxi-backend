@@ -16,4 +16,13 @@ public static class KafkaTopics
     public const string OrderStatusChanged = "order.status_changed";
     public const string PaymentCompleted = "payment.completed";
     public const string TripRated = "trip.rated";
+
+    public static readonly string[] All =
+    [
+        UserRegistered,
+        DriverRegistered,
+        OrderStatusChanged,
+        PaymentCompleted,
+        TripRated
+    ];
 }

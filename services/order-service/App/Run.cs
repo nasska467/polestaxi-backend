@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using PolesTaxi.Contracts.Driver.V1;
+using PolesTaxi.Contracts.Wallet.V1;
 using PolesTaxi.OrderService.App.Db.Elastic;
 using PolesTaxi.OrderService.App.Db.Redis;
 using PolesTaxi.OrderService.Config;
 using PolesTaxi.OrderService.Entity.Service;
+using PolesTaxi.OrderService.Gateway;
+using PolesTaxi.OrderService.Gateway.Grpc;
 using PolesTaxi.OrderService.Handler.Graphql;
 using PolesTaxi.OrderService.Handler.Grpc;
 using PolesTaxi.OrderService.Repository;
@@ -27,6 +31,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "order-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8084);
@@ -41,7 +47,7 @@ public static class Run
             .AddGraphQLServer()
             .AddQueryType<OrderQueries>()
             .AddMutationType<OrderMutations>()
-            .AddType<OrderType>(); // <-- используем явный тип
+            .AddType<OrderType>();
 
         // Elasticsearch
         builder.Services.AddSingleton(_ => ElasticStore.New(config.ElasticsearchUri, config.IndexName, cts.Token).GetAwaiter().GetResult());
@@ -49,6 +55,21 @@ public static class Run
         // Redis
         builder.Services.AddSingleton(_ => RedisClient.New(config.RedisConnection, cts.Token).GetAwaiter().GetResult());
         builder.Services.AddSingleton(sp => new OrderRedisCache(sp.GetRequiredService<RedisClient>().Database, TimeSpan.FromMinutes(10)));
+
+        // Конфигурация цен
+        builder.Services.AddSingleton(PricingConfig.FromEnvironment());
+
+        // gRPC-клиент для Wallet Service с политикой Polly
+        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o =>
+            o.Address = new Uri(Environment.GetEnvironmentVariable("WALLET_GRPC_ADDR") ?? "http://127.0.0.1:9085"))
+            .AddPolesTaxiResilience();
+        builder.Services.AddScoped<IWalletGateway, WalletGrpcGateway>();
+
+        // gRPC-клиент для Driver Service с политикой Polly
+        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o =>
+            o.Address = new Uri(Environment.GetEnvironmentVariable("DRIVER_GRPC_ADDR") ?? "http://127.0.0.1:9083"))
+            .AddPolesTaxiResilience();
+        builder.Services.AddScoped<IDriverGateway, DriverGrpcGateway>();
 
         // Репозиторий и сервис
         builder.Services.AddScoped<IOrderRepository>(sp => new OrderElasticRepository(
@@ -64,7 +85,13 @@ public static class Run
         app.UseRouting();
         app.MapGrpcService<OrderGrpcHandler>();
         app.MapGraphQL("/graphql");
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            var elastic = app.Services.GetRequiredService<ElasticStore>();
+            var redis = app.Services.GetRequiredService<RedisClient>();
+            var ping = await elastic.Client.PingAsync(ct);
+            return ping.IsValidResponse && redis.Multiplexer.IsConnected;
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"order-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");

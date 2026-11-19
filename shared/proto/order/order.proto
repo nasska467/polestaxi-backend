@@ -20,6 +20,8 @@ service OrderService {
   rpc RateOrder(RateOrderRequest) returns (OrderResponse) {
     option (google.api.http) = { post: "/v1/orders/{id}/rate" body: "*" };
   }
+  
+  // Эти методы уже есть, они правильные
   rpc Accept(GetOrderRequest) returns (OrderResponse) {
     option (google.api.http) = { post: "/v1/orders/{id}/accept" body: "*" };
   }
@@ -53,6 +55,7 @@ message RateOrderRequest {
   int32 score = 2;
 }
 
+// ДОБАВЛЕНЫ поля pickup и dropoff (адреса и координаты)
 message OrderResponse {
   string id = 1;
   string user_id = 2;
@@ -66,6 +69,14 @@ message OrderResponse {
   int32 user_rating = 10;
   int32 driver_rating = 11;
   string comment = 12;
+  
+  // Геолокация (добавлено для полноты ответа)
+  double pickup_lat = 13;
+  double pickup_lon = 14;
+  string pickup_address = 15;
+  double dropoff_lat = 16;
+  double dropoff_lon = 17;
+  string dropoff_address = 18;
 }
 
 enum TaxiType {

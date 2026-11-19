@@ -1,4 +1,4 @@
-﻿using PolesTaxi.UserService.App;
+using PolesTaxi.UserService.App;
 
 namespace PolesTaxi.UserService;
 

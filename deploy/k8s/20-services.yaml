@@ -1,0 +1,246 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: user } }
+  template:
+    metadata: { labels: { app: user } }
+    spec:
+      containers:
+        - name: user
+          image: deploy-user:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+            - secretRef: { name: polestaxi-secret }
+          ports: [{ containerPort: 8081 }, { containerPort: 9081 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8081 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8081 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  namespace: polestaxi
+spec:
+  selector: { app: user }
+  ports:
+    - { name: http, port: 8081, targetPort: 8081 }
+    - { name: grpc, port: 9081, targetPort: 9081 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: auth } }
+  template:
+    metadata: { labels: { app: auth } }
+    spec:
+      containers:
+        - name: auth
+          image: deploy-auth:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+            - secretRef: { name: polestaxi-secret }
+          ports: [{ containerPort: 8082 }, { containerPort: 9082 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8082 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8082 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth
+  namespace: polestaxi
+spec:
+  selector: { app: auth }
+  ports:
+    - { name: http, port: 8082, targetPort: 8082 }
+    - { name: grpc, port: 9082, targetPort: 9082 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driver
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: driver } }
+  template:
+    metadata: { labels: { app: driver } }
+    spec:
+      containers:
+        - name: driver
+          image: deploy-driver:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+          ports: [{ containerPort: 8083 }, { containerPort: 9083 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8083 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8083 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: driver
+  namespace: polestaxi
+spec:
+  selector: { app: driver }
+  ports:
+    - { name: http, port: 8083, targetPort: 8083 }
+    - { name: grpc, port: 9083, targetPort: 9083 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: order } }
+  template:
+    metadata: { labels: { app: order } }
+    spec:
+      containers:
+        - name: order
+          image: deploy-order:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+          ports: [{ containerPort: 8084 }, { containerPort: 9084 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8084 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8084 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order
+  namespace: polestaxi
+spec:
+  selector: { app: order }
+  ports:
+    - { name: http, port: 8084, targetPort: 8084 }
+    - { name: grpc, port: 9084, targetPort: 9084 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: wallet } }
+  template:
+    metadata: { labels: { app: wallet } }
+    spec:
+      containers:
+        - name: wallet
+          image: deploy-wallet:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+            - secretRef: { name: polestaxi-secret }
+          ports: [{ containerPort: 8085 }, { containerPort: 9085 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8085 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8085 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet
+  namespace: polestaxi
+spec:
+  selector: { app: wallet }
+  ports:
+    - { name: http, port: 8085, targetPort: 8085 }
+    - { name: grpc, port: 9085, targetPort: 9085 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytic
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: analytic } }
+  template:
+    metadata: { labels: { app: analytic } }
+    spec:
+      containers:
+        - name: analytic
+          image: deploy-analytic:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+          ports: [{ containerPort: 8086 }, { containerPort: 9086 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8086 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8086 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytic
+  namespace: polestaxi
+spec:
+  selector: { app: analytic }
+  ports:
+    - { name: http, port: 8086, targetPort: 8086 }
+    - { name: grpc, port: 9086, targetPort: 9086 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: polestaxi
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: gateway } }
+  template:
+    metadata: { labels: { app: gateway } }
+    spec:
+      containers:
+        - name: gateway
+          image: deploy-gateway:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: polestaxi-config }
+          ports: [{ containerPort: 8080 }]
+          livenessProbe: { httpGet: { path: /healthz, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 15 }
+          readinessProbe: { httpGet: { path: /readyz, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: polestaxi
+spec:
+  selector: { app: gateway }
+  ports:
+    - { name: http, port: 8080, targetPort: 8080 }

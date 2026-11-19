@@ -22,6 +22,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "wallet-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8085);
@@ -31,15 +33,30 @@ public static class Run
         builder.Services.AddPolesTaxiGrpc();
         builder.Services.AddSingleton(config);
         builder.Services.AddSingleton(_ => PgClient.New(config.PostgresConnection));
+        
         builder.Services.AddScoped<IWalletRepository>(sp => new WalletPgRepository(sp.GetRequiredService<PgClient>().DataSource));
-        builder.Services.AddScoped<IWalletAppService, WalletAppService>();
+        
+        builder.Services.AddScoped<IWalletAppService>(sp => 
+            new WalletAppService(
+                sp.GetRequiredService<IWalletRepository>(), 
+                ParseBonus()
+            ));
+            
         builder.Services.AddScoped<WalletGrpcHandler>();
 
         var app = builder.Build();
 
         app.UseRouting();
         app.MapGrpcService<WalletGrpcHandler>();
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            var pg = app.Services.GetRequiredService<PgClient>();
+            await using var conn = await pg.DataSource.OpenConnectionAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1";
+            await cmd.ExecuteScalarAsync(ct);
+            return true;
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"wallet-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");
@@ -50,5 +67,11 @@ public static class Run
         await app.StopAsync();
         Console.WriteLine("shutdown");
         return 0;
+    }
+
+    private static decimal ParseBonus()
+    {
+        var env = Environment.GetEnvironmentVariable("WALLET_INITIAL_BALANCE");
+        return decimal.TryParse(env, out var bonus) ? bonus : 5000m;
     }
 }

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: polestaxi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polestaxi-config
+  namespace: polestaxi
+data:
+  MONGO_CONNECTION: "mongodb://mongo:27017"
+  MONGO_USER_DATABASE: "polestaxi_users"
+  MONGO_DRIVER_DATABASE: "polestaxi_drivers"
+  REDIS_CONNECTION: "redis:6379"
+  ELASTICSEARCH_URI: "http://elasticsearch:9200"
+  ELASTICSEARCH_INDEX: "orders"
+  CLICKHOUSE_CONNECTION: "Host=clickhouse;Port=8123;Database=default;Username=default;Password="
+  KAFKA_BROKERS: "kafka:29092"
+  USER_GRPC_ADDR: "http://user:9081"
+  AUTH_GRPC_ADDR: "http://auth:9082"
+  DRIVER_GRPC_ADDR: "http://driver:9083"
+  WALLET_GRPC_ADDR: "http://wallet:9085"
+  USER_HTTP: "http://user:8081/"
+  AUTH_HTTP: "http://auth:8082/"
+  DRIVER_HTTP: "http://driver:8083/"
+  ORDER_HTTP: "http://order:8084/"
+  WALLET_HTTP: "http://wallet:8085/"
+  ANALYTIC_HTTP: "http://analytic:8086/"
+  SEED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: polestaxi-secret
+  namespace: polestaxi
+type: Opaque
+stringData:
+  POSTGRES_CONNECTION: "Host=postgres;Port=5432;Database=polestaxi_wallet;Username=polestaxi;Password=polestaxi"
+  JWT_SECRET: "dev-polestaxi-jwt-secret-key-32bytes!"

@@ -17,5 +17,6 @@ public sealed class TransactionRow
     public decimal Amount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? OrderId { get; set; }
+    public string? IdempotencyKey { get; set; } // <-- Добавлено новое свойство
     public DateTime CreatedAt { get; set; }
 }

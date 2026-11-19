@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using PolesTaxi.Contracts.Driver.V1;
 using PolesTaxi.Contracts.Wallet.V1;
@@ -30,6 +31,8 @@ public static class Run
 
         var builder = WebApplication.CreateBuilder();
 
+        Observability.Add(builder, "user-service");
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8081);
@@ -38,12 +41,14 @@ public static class Run
 
         builder.Services.AddPolesTaxiGrpc();
 
-        // gRPC-клиент для Driver Service
-        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o => o.Address = new Uri("http://127.0.0.1:9083"));
+        // gRPC-клиент для Driver Service с политикой Polly
+        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o => o.Address = new Uri(config.DriverGrpcAddr))
+            .AddPolesTaxiResilience();
         builder.Services.AddScoped<IDriverGateway, DriverGrpcGateway>();
 
-        // gRPC-клиент для Wallet Service
-        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o => o.Address = new Uri("http://127.0.0.1:9085"));
+        // gRPC-клиент для Wallet Service с политикой Polly
+        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o => o.Address = new Uri(config.WalletGrpcAddr))
+            .AddPolesTaxiResilience();
         builder.Services.AddScoped<IWalletGateway, WalletGrpcGateway>();
 
         builder.Services.AddSingleton(config);
@@ -78,7 +83,12 @@ public static class Run
 
         app.UseRouting();
         app.MapGrpcService<UserGrpcHandler>();
-        app.MapHealth();
+        app.UsePlatform(async ct =>
+        {
+            var mongo = app.Services.GetRequiredService<MongoClient>();
+            await mongo.Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: ct);
+            return true;
+        });
 
         await app.StartAsync(cts.Token);
         Console.WriteLine($"user-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");
