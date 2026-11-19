@@ -40,4 +40,7 @@
     <Project Path="shared/PolesTaxi.Contracts/PolesTaxi.Contracts.csproj" />
     <Project Path="shared/PolesTaxi.Shared/PolesTaxi.Shared.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PolesTaxi.IntegrationTests/PolesTaxi.IntegrationTests.csproj" />
+  </Folder>
 </Solution>
