@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Prometheus;
@@ -27,7 +28,11 @@ public static class Observability
                 t.AddHttpClientInstrumentation();
                 if (!string.IsNullOrWhiteSpace(otlp))
                 {
-                    t.AddOtlpExporter(o => o.Endpoint = new Uri(otlp));
+                    t.AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri($"{otlp.TrimEnd('/')}/v1/traces");
+                        o.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    });
                 }
             });
     }

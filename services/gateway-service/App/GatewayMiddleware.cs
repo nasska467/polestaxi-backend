@@ -69,6 +69,8 @@ public sealed class GatewayMiddleware
         return value.StartsWith("/v1/auth/login", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/v1/auth/refresh", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("/v1/users/register", StringComparison.OrdinalIgnoreCase)
-            || value.Equals("/healthz", StringComparison.OrdinalIgnoreCase);
+            || value.Equals("/healthz", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/readyz", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/metrics", StringComparison.OrdinalIgnoreCase);
     }
 }
