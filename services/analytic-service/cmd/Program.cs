@@ -1,4 +1,5 @@
 using PolesTaxi.AnalyticService.App;
+﻿using PolesTaxi.AnalyticService.App;
 
 namespace PolesTaxi.AnalyticService;
 
@@ -8,4 +9,5 @@ public static class Program
     {
         return await Run.ExecuteAsync(args);
     }
+}
 }

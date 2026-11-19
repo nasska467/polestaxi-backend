@@ -1,0 +1,106 @@
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
+using PolesTaxi.Contracts.Driver.V1;
+using PolesTaxi.Contracts.Wallet.V1;
+using PolesTaxi.OrderService.App.Db.Elastic;
+using PolesTaxi.OrderService.App.Db.Redis;
+using PolesTaxi.OrderService.Config;
+using PolesTaxi.OrderService.Entity.Service;
+using PolesTaxi.OrderService.Gateway;
+using PolesTaxi.OrderService.Gateway.Grpc;
+using PolesTaxi.OrderService.Handler.Graphql;
+using PolesTaxi.OrderService.Handler.Grpc;
+using PolesTaxi.OrderService.Repository;
+using PolesTaxi.OrderService.Repository.Elastic;
+using PolesTaxi.OrderService.Repository.Redis;
+using PolesTaxi.OrderService.Service;
+using PolesTaxi.Shared.Hosting;
+using HotChocolate.AspNetCore;
+
+namespace PolesTaxi.OrderService.App;
+
+public static class Run
+{
+    public static async Task<int> ExecuteAsync(string[] args)
+    {
+        _ = args;
+        var config = AppConfig.FromEnvironment();
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+
+        var builder = WebApplication.CreateBuilder();
+
+        Observability.Add(builder, "order-service");
+
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenAnyIP(8084);
+            options.ListenAnyIP(9084, listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
+        });
+
+        builder.Services.AddPolesTaxiGrpc();
+
+        // GraphQL
+        builder.Services.AddHttpContextAccessor();
+        builder.Services
+            .AddGraphQLServer()
+            .AddQueryType<OrderQueries>()
+            .AddMutationType<OrderMutations>()
+            .AddType<OrderType>();
+
+        // Elasticsearch
+        builder.Services.AddSingleton(_ => ElasticStore.New(config.ElasticsearchUri, config.IndexName, cts.Token).GetAwaiter().GetResult());
+
+        // Redis
+        builder.Services.AddSingleton(_ => RedisClient.New(config.RedisConnection, cts.Token).GetAwaiter().GetResult());
+        builder.Services.AddSingleton(sp => new OrderRedisCache(sp.GetRequiredService<RedisClient>().Database, TimeSpan.FromMinutes(10)));
+
+        // Конфигурация цен
+        builder.Services.AddSingleton(PricingConfig.FromEnvironment());
+
+        // gRPC-клиент для Wallet Service с политикой Polly
+        builder.Services.AddGrpcClient<WalletService.WalletServiceClient>(o =>
+            o.Address = new Uri(Environment.GetEnvironmentVariable("WALLET_GRPC_ADDR") ?? "http://127.0.0.1:9085"))
+            .AddPolesTaxiResilience();
+        builder.Services.AddScoped<IWalletGateway, WalletGrpcGateway>();
+
+        // gRPC-клиент для Driver Service с политикой Polly
+        builder.Services.AddGrpcClient<DriverService.DriverServiceClient>(o =>
+            o.Address = new Uri(Environment.GetEnvironmentVariable("DRIVER_GRPC_ADDR") ?? "http://127.0.0.1:9083"))
+            .AddPolesTaxiResilience();
+        builder.Services.AddScoped<IDriverGateway, DriverGrpcGateway>();
+
+        // Репозиторий и сервис
+        builder.Services.AddScoped<IOrderRepository>(sp => new OrderElasticRepository(
+            sp.GetRequiredService<ElasticStore>().Client,
+            sp.GetRequiredService<ElasticStore>().IndexName,
+            sp.GetRequiredService<OrderRedisCache>()));
+
+        builder.Services.AddScoped<IOrderAppService, OrderAppService>();
+        builder.Services.AddScoped<OrderGrpcHandler>();
+
+        var app = builder.Build();
+
+        app.UseRouting();
+        app.MapGrpcService<OrderGrpcHandler>();
+        app.MapGraphQL("/graphql");
+        app.UsePlatform(async ct =>
+        {
+            var elastic = app.Services.GetRequiredService<ElasticStore>();
+            var redis = app.Services.GetRequiredService<RedisClient>();
+            var ping = await elastic.Client.PingAsync(ct);
+            return ping.IsValidResponse && redis.Multiplexer.IsConnected;
+        });
+
+        await app.StartAsync(cts.Token);
+        Console.WriteLine($"order-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");
+
+        try { await Task.Delay(Timeout.Infinite, cts.Token); }
+        catch (OperationCanceledException) { }
+
+        await app.StopAsync();
+        Console.WriteLine("shutdown");
+        return 0;
+    }
+}
