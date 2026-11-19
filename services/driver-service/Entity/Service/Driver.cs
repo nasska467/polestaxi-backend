@@ -19,10 +19,3 @@ public sealed class Driver
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
 }
-
-public sealed class DriverPatch
-{
-    public TaxiType TaxiType { get; init; }
-    public required string LicensePlate { get; init; }
-    public GeoPoint? Location { get; init; }
-}

@@ -1,4 +1,4 @@
-﻿using PolesTaxi.DriverService.App;
+using PolesTaxi.DriverService.App;
 
 namespace PolesTaxi.DriverService;
 

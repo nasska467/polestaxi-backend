@@ -1,8 +1,13 @@
-﻿using PolesTaxi.WalletService.App.Db.Pg;
-using PolesTaxi.WalletService.App.Db.Redis;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
+using PolesTaxi.Shared.Hosting;
+using PolesTaxi.WalletService.App.Db.Pg;
 using PolesTaxi.WalletService.Config;
+using PolesTaxi.WalletService.Handler.Grpc;
+using PolesTaxi.WalletService.Repository;
 using PolesTaxi.WalletService.Repository.Pg;
-using PolesTaxi.WalletService.Repository.Redis;
+using PolesTaxi.WalletService.Service;
 
 namespace PolesTaxi.WalletService.App;
 
@@ -15,29 +20,50 @@ public static class Run
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-        try
+        var builder = WebApplication.CreateBuilder();
+
+        builder.WebHost.ConfigureKestrel(options =>
         {
-            using var pg = PgClient.New(config.PostgresConnection);
-            Console.WriteLine("postgres ready");
+            options.ListenAnyIP(8085);
+            options.ListenAnyIP(9085, listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
+        });
 
-            var redis = await RedisClient.New(config.RedisConnection, cts.Token);
-            using (redis)
-            {
-                var cache = new TransactionRedisCache(redis.Database, TimeSpan.FromMinutes(5));
-                var repo = new WalletPgRepository(pg.DataSource, cache);
-                Console.WriteLine("redis ready");
+        builder.Services.AddPolesTaxiGrpc();
+        builder.Services.AddSingleton(config);
+        builder.Services.AddSingleton(_ => PgClient.New(config.PostgresConnection));
+        
+        builder.Services.AddScoped<IWalletRepository>(sp => new WalletPgRepository(sp.GetRequiredService<PgClient>().DataSource));
+        
+        // ИСПРАВЛЕНО: Читаем бонус из переменной окружения через ParseBonus()
+        builder.Services.AddScoped<IWalletAppService>(sp => 
+            new WalletAppService(
+                sp.GetRequiredService<IWalletRepository>(), 
+                ParseBonus()
+            ));
+            
+        builder.Services.AddScoped<WalletGrpcHandler>();
 
-                try { await Task.Delay(Timeout.Infinite, cts.Token); }
-                catch (OperationCanceledException) { }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"wallet store init failed: {ex.Message}");
-            return 1;
-        }
+        var app = builder.Build();
 
+        app.UseRouting();
+        app.MapGrpcService<WalletGrpcHandler>();
+        app.MapHealth();
+
+        await app.StartAsync(cts.Token);
+        Console.WriteLine($"wallet-service ready http={config.HttpAddr} grpc={config.GrpcAddr}");
+
+        try { await Task.Delay(Timeout.Infinite, cts.Token); }
+        catch (OperationCanceledException) { }
+
+        await app.StopAsync();
         Console.WriteLine("shutdown");
         return 0;
+    }
+
+    // ДОБАВЛЕНО: Метод для чтения бонуса из переменной окружения
+    private static decimal ParseBonus()
+    {
+        var env = Environment.GetEnvironmentVariable("WALLET_INITIAL_BALANCE");
+        return decimal.TryParse(env, out var bonus) ? bonus : 5000m;
     }
 }

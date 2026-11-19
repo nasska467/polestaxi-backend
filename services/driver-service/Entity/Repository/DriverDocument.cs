@@ -9,7 +9,6 @@ public sealed class DriverDocument
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     public string Id { get; set; } = string.Empty;
-    
     public string UserId { get; set; } = string.Empty;
     public string TaxiType { get; set; } = string.Empty;
     public string LicensePlate { get; set; } = string.Empty;

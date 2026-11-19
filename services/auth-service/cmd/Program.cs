@@ -1,4 +1,4 @@
-﻿using PolesTaxi.AuthService.App;
+using PolesTaxi.AuthService.App;
 
 namespace PolesTaxi.AuthService;
 

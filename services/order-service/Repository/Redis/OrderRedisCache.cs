@@ -1,7 +1,7 @@
 using System.Text.Json;
 using PolesTaxi.OrderService.Entity.Service;
 using StackExchange.Redis;
-using Order = PolesTaxi.OrderService.Entity.Service.Order; // Явно указываем, какой Order использовать
+using Order = PolesTaxi.OrderService.Entity.Service.Order;
 
 namespace PolesTaxi.OrderService.Repository.Redis;
 

@@ -18,9 +18,7 @@ public sealed class ElasticStore
 
     public static async Task<ElasticStore> New(string uri, string indexName, CancellationToken cancellationToken)
     {
-        // Убедимся, что URI использует http, а не https
         var httpUri = uri.Replace("https://", "http://");
-
         var settings = new ElasticsearchClientSettings(new Uri(httpUri))
             .DefaultIndex(indexName)
             .ThrowExceptions(false);
@@ -66,8 +64,6 @@ public sealed class ElasticStore
 
         var created = await Client.Indices.CreateAsync(request, cancellationToken);
         if (!created.IsValidResponse)
-        {
             throw new InvalidOperationException($"elasticsearch mapping failed: {created.DebugInformation}");
-        }
     }
 }

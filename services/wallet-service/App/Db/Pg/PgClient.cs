@@ -22,7 +22,23 @@ public sealed class PgClient : IDisposable
 
         using (var scope = services.CreateScope())
         {
-            scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp();
+            try
+            {
+                var runner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+                Console.WriteLine("FluentMigrator: Начинаю применение миграций...");
+                
+                // Применяем все миграции
+                runner.MigrateUp();
+                
+                Console.WriteLine("FluentMigrator: Миграции успешно применены!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FluentMigrator ОШИБКА: {ex.Message}");
+                if (ex.InnerException != null)
+                    Console.WriteLine($"Inner: {ex.InnerException.Message}");
+                throw;
+            }
         }
 
         return new PgClient(NpgsqlDataSource.Create(connectionString));

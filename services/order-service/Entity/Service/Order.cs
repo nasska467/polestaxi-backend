@@ -30,13 +30,3 @@ public sealed class Order
     public DateTime? StartedAt { get; init; }
     public DateTime? FinishedAt { get; init; }
 }
-
-public sealed class OrderSearch
-{
-    public OrderStatus? Status { get; init; }
-    public string? UserId { get; init; }
-    public string? DriverId { get; init; }
-    public DateTime? CreatedFrom { get; init; }
-    public DateTime? CreatedTo { get; init; }
-    public int PageSize { get; init; } = 20;
-}

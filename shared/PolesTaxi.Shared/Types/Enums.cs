@@ -11,22 +11,18 @@ public static class EnumMaps
     {
         Role.User => "User", Role.Driver => "Driver", Role.Analyst => "Analyst", Role.Admin => "Admin", _ => "Unspecified"
     };
-
     public static Role RoleFromWire(string value) => value switch
     {
         "User" => Role.User, "Driver" => Role.Driver, "Analyst" => Role.Analyst, "Admin" => Role.Admin, _ => Role.Unspecified
     };
-
     public static string ToWire(this TaxiType type) => type switch
     {
         TaxiType.Economy => "Economy", TaxiType.Comfort => "Comfort", TaxiType.Business => "Business", _ => "Unspecified"
     };
-
     public static TaxiType TaxiTypeFromWire(string value) => value switch
     {
         "Economy" => TaxiType.Economy, "Comfort" => TaxiType.Comfort, "Business" => TaxiType.Business, _ => TaxiType.Unspecified
     };
-
     public static bool CanTransition(DriverStatus from, DriverStatus to) => (from, to) switch
     {
         (DriverStatus.Offline, DriverStatus.Available) => true,

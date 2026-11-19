@@ -17,7 +17,6 @@ public sealed class RedisClient : IDisposable
     {
         var mux = await ConnectionMultiplexer.ConnectAsync(connectionString);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!mux.IsConnected) throw new InvalidOperationException("redis is not connected");
         return new RedisClient(mux);
     }
 

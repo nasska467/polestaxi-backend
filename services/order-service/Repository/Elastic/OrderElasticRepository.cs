@@ -5,6 +5,7 @@ using PolesTaxi.OrderService.Entity.Service;
 using PolesTaxi.OrderService.Repository.Redis;
 using PolesTaxi.Shared.Errors;
 using PolesTaxi.Shared.Types;
+using Location = PolesTaxi.OrderService.Entity.Service.Location;
 
 namespace PolesTaxi.OrderService.Repository.Elastic;
 
@@ -54,13 +55,13 @@ public sealed class OrderElasticRepository : IOrderRepository
     {
         var filters = new List<Query>();
         if (query.Status is { } status && status != OrderStatus.Unspecified)
-            filters.Add(Query.Term(new TermQuery("status") { Value = StatusToWire(status) }));
+            filters.Add(Query.Term(new TermQuery("status"!) { Value = StatusToWire(status) }));
 
         if (!string.IsNullOrEmpty(query.UserId))
-            filters.Add(Query.Term(new TermQuery("userId") { Value = query.UserId }));
+            filters.Add(Query.Term(new TermQuery("userId"!) { Value = query.UserId }));
 
         if (!string.IsNullOrEmpty(query.DriverId))
-            filters.Add(Query.Term(new TermQuery("driverId") { Value = query.DriverId }));
+            filters.Add(Query.Term(new TermQuery("driverId"!) { Value = query.DriverId }));
 
         var response = await _client.SearchAsync<OrderDocument>(s => s
             .Index(_index)

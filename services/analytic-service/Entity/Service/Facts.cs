@@ -27,3 +27,19 @@ public sealed class TripRatedFact
     public int Score { get; init; }
     public DateTime EventTime { get; init; }
 }
+
+public sealed class OrderStats
+{
+    public long Total { get; set; }
+    public long Completed { get; set; }
+    public long Cancelled { get; set; }
+    public double AvgPrice { get; set; }
+    public double AvgDistance { get; set; }
+}
+
+public sealed class RatingStats
+{
+    public long Total { get; set; }
+    public double AvgDriverRating { get; set; }
+    public double AvgUserRating { get; set; }
+}

@@ -1,4 +1,4 @@
-﻿using PolesTaxi.WalletService.App;
+using PolesTaxi.WalletService.App;
 
 namespace PolesTaxi.WalletService;
 

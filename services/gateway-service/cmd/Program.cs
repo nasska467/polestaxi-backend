@@ -1,4 +1,4 @@
-﻿using PolesTaxi.GatewayService.App;
+using PolesTaxi.GatewayService.App;
 
 namespace PolesTaxi.GatewayService;
 

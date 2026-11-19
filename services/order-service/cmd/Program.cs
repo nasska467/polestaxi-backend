@@ -1,4 +1,4 @@
-﻿using PolesTaxi.OrderService.App;
+using PolesTaxi.OrderService.App;
 
 namespace PolesTaxi.OrderService;
 

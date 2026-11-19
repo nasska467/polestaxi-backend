@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package polestaxi.user.v1;
+
+option csharp_namespace = "PolesTaxi.Contracts.User.V1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service UserService {
+  rpc Register(RegisterRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/register"
+      body: "*"
+    };
+  }
+  rpc GetMe(google.protobuf.Empty) returns (UserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/me"
+    };
+  }
+  rpc VerifyCredentials(VerifyCredentialsRequest) returns (VerifyCredentialsResponse);
+}
+
+message RegisterRequest {
+  string name = 1;
+  string phone = 2;
+  string email = 3;
+  string password = 4;
+  Role role = 5;
+}
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_DRIVER = 2;
+  ROLE_ANALYST = 3;
+  ROLE_ADMIN = 4;
+}
+
+message UserResponse {
+  string id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  repeated Role roles = 5;
+  double rating = 6;
+  bool is_deleted = 7;
+}
+
+message VerifyCredentialsRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message VerifyCredentialsResponse {
+  string user_id = 1;
+  repeated Role roles = 2;
+}

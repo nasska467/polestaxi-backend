@@ -23,7 +23,7 @@ public sealed class DriverMongoRepository : IDriverRepository
         }
         catch (MongoWriteException ex) when (ex.WriteError.Code == 11000)
         {
-            throw AppException.Conflict("driver already exists for user");
+            throw AppException.Conflict("driver already exists");
         }
         return ToDomain(doc);
     }
@@ -35,27 +35,8 @@ public sealed class DriverMongoRepository : IDriverRepository
         return ToDomain(doc);
     }
 
-    public async Task<Driver> Update(string userId, DriverPatch patch, CancellationToken cancellationToken)
-    {
-        var update = Builders<DriverDocument>.Update
-            .Set(x => x.TaxiType, patch.TaxiType.ToWire())
-            .Set(x => x.LicensePlate, patch.LicensePlate)
-            .Set(x => x.Location, ToGeo(patch.Location))
-            .Set(x => x.UpdatedAt, DateTime.UtcNow);
-
-        // Явно указываем тип, чтобы убрать неоднозначность
-        var doc = await _drivers.FindOneAndUpdateAsync<DriverDocument, DriverDocument>(
-            x => x.UserId == userId, update, 
-            new FindOneAndUpdateOptions<DriverDocument, DriverDocument> { ReturnDocument = ReturnDocument.After }, 
-            cancellationToken);
-            
-        if (doc is null) throw AppException.NotFound("driver not found");
-        return ToDomain(doc);
-    }
-
     public async Task<Driver> SetStatus(string userId, DriverStatus status, CancellationToken cancellationToken)
     {
-        // Явно указываем тип, чтобы убрать неоднозначность
         var doc = await _drivers.FindOneAndUpdateAsync<DriverDocument, DriverDocument>(
             x => x.UserId == userId,
             Builders<DriverDocument>.Update.Set(x => x.Status, StatusToWire(status)).Set(x => x.UpdatedAt, DateTime.UtcNow),
