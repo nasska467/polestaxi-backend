@@ -1,0 +1,114 @@
+<mxfile host="app.diagrams.net" agent="PolesTaxi" pages="2">
+  <diagram id="arch" name="System">
+    <mxGraphModel dx="1414" dy="777" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Client" vertex="1">
+          <mxGeometry height="50" width="100" x="430" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="ngx" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="NGINX&#xa;rate limit, TLS, LB" vertex="1">
+          <mxGeometry height="70" width="140" x="410" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="gw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Gateway Service&#xa;YARP + RBAC&#xa;ValidateToken" vertex="1">
+          <mxGeometry height="90" width="160" x="400" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Auth Service&#xa;JWT + Redis" vertex="1">
+          <mxGeometry height="70" width="150" x="680" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="User Service&#xa;MongoDB" vertex="1">
+          <mxGeometry height="70" width="150" x="680" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="drv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Driver Service&#xa;MongoDB" vertex="1">
+          <mxGeometry height="70" width="150" x="680" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="ord" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Order Service&#xa;Elasticsearch + Redis&#xa;GraphQL" vertex="1">
+          <mxGeometry height="80" width="150" x="680" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="wal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Wallet Service&#xa;PostgreSQL + Redis" vertex="1">
+          <mxGeometry height="70" width="150" x="680" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="an" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Analytic Service&#xa;ClickHouse" vertex="1">
+          <mxGeometry height="70" width="150" x="680" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="kfk" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Kafka" vertex="1">
+          <mxGeometry height="80" width="120" x="980" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ngx">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="260" as="sourcePoint" />
+            <mxPoint x="540" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="ngx" style="endArrow=classic;html=1;rounded=0;" target="gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="gw" style="endArrow=classic;html=1;rounded=0;dashed=1;" target="auth" value="gRPC Validate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="gw" style="endArrow=classic;html=1;" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="gw" style="endArrow=classic;html=1;" target="drv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="gw" style="endArrow=classic;html=1;" target="ord">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="gw" style="endArrow=classic;html=1;" target="wal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="gw" style="endArrow=classic;html=1;" target="an">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="auth" style="endArrow=classic;html=1;dashed=1;" target="user" value="VerifyCredentials">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="user" style="endArrow=classic;html=1;dashed=1;" target="drv" value="RegisterDriver">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="user" style="endArrow=classic;html=1;dashed=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="wal" value="CreateWallet">
+          <mxGeometry relative="1" x="-0.0586" y="30" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="850" y="215" />
+              <mxPoint x="850" y="585" />
+            </Array>
+            <mxPoint x="829.43" y="250" as="sourcePoint" />
+            <mxPoint x="829.43" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="ord" style="endArrow=classic;html=1;dashed=1;" target="wal" value="Debit / Refund">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="ord" style="endArrow=classic;html=1;dashed=1;" target="drv" value="Trip RPC">
+          <mxGeometry relative="1" x="0.2" y="-25" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="user" style="endArrow=classic;html=1;dashed=1;" target="kfk" value="user.registered">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="ord" style="endArrow=classic;html=1;dashed=1;" target="kfk" value="order / payment events">
+          <mxGeometry relative="1" x="0.1282" y="-7" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="kfk" style="endArrow=classic;html=1;dashed=1;" target="an" value="consume">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="leg" parent="1" style="text;html=1;align=left;verticalAlign=middle;" value="Сплошная линия: HTTP через Gateway&#xa;Пунктир: gRPC или Kafka" vertex="1">
+          <mxGeometry height="50" width="280" x="420" y="120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="_HhI1kse3aRNK2VvO9Ls" name="Страница-2">
+    <mxGraphModel dx="1414" dy="777" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
